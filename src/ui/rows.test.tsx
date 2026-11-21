@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 
-import { useBindings } from "@opentui/keymap/react";
 import { use, useState } from "react";
 
 import { render } from "#testing/render.tsx";
 import { textLines } from "#testing/screen.ts";
 
 import { FocusScope } from "./focus.tsx";
+import { Key } from "./key-hints.tsx";
 import { Rows } from "./rows.tsx";
 import { SelectedContext } from "./table.tsx";
 import { useSelection } from "./use-selection.ts";
@@ -52,15 +52,12 @@ interface GrowingRowsProps {
 function GrowingRows({ from, to }: GrowingRowsProps) {
   const [count, setCount] = useState(from);
 
-  useBindings(
-    () => ({
-      commands: [{ name: "rows.grow", run: () => setCount(to) }],
-      bindings: [{ key: "g", cmd: "rows.grow" }],
-    }),
-    [to],
+  return (
+    <>
+      <NumberedRows count={count} />
+      <Key name="g" onPress={() => setCount(to)} />
+    </>
   );
-
-  return <NumberedRows count={count} />;
 }
 
 function visibleRows(frame: string) {
