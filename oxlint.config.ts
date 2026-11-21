@@ -1,11 +1,11 @@
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "react", "import"],
-  "options": {
-    "denyWarnings": true,
-    "typeAware": true
-  },
-  "rules": {
+import { defineConfig } from "oxlint";
+
+export default defineConfig({
+  plugins: ["typescript", "unicorn", "oxc", "react", "import"],
+  jsPlugins: [{ name: "react-hooks-js", specifier: "eslint-plugin-react-hooks" }],
+  options: { denyWarnings: true, typeAware: true },
+  settings: { "react-hooks": { additionalEffectHooks: "useBindings" } },
+  rules: {
     "import/no-cycle": "warn",
     "import/no-empty-named-blocks": "warn",
     "react-hooks-js/config": "warn",
@@ -24,37 +24,11 @@
     "react-hooks-js/unsupported-syntax": "warn",
     "react-hooks-js/use-memo": "warn",
     "react-hooks-js/void-use-memo": "warn",
-    "react/exhaustive-deps": [
-      "warn",
-      {
-        "additionalHooks": "useBindings"
-      }
-    ],
+    "react/exhaustive-deps": ["warn", { additionalHooks: "useBindings" }],
     "typescript/consistent-type-definitions": "warn",
-    "typescript/restrict-template-expressions": [
-      "warn",
-      {
-        "allowNever": true
-      }
-    ],
-    "typescript/strict-boolean-expressions": [
-      "warn",
-      {
-        "allowNullableObject": false
-      }
-    ],
+    "typescript/restrict-template-expressions": ["warn", { allowNever: true }],
+    "typescript/strict-boolean-expressions": ["warn", { allowNullableObject: false }],
     "typescript/use-unknown-in-catch-callback-variable": "warn",
-    "unicorn/no-array-callback-reference": "warn"
+    "unicorn/no-array-callback-reference": "warn",
   },
-  "jsPlugins": [
-    {
-      "name": "react-hooks-js",
-      "specifier": "eslint-plugin-react-hooks"
-    }
-  ],
-  "settings": {
-    "react-hooks": {
-      "additionalEffectHooks": "useBindings"
-    }
-  }
-}
+});
