@@ -10,8 +10,8 @@ import { silenceConsoleError } from "#testing/console.ts";
 import { logsRequest, metricsRequest, TEMPORALITY, tracesRequest } from "#testing/otlp.ts";
 import { startTestReceiver, type TestReceiver } from "#testing/receiver.ts";
 import { LOOPBACK_HOST } from "#utils/loopback.ts";
+import { StartupError } from "#utils/startup-error.ts";
 
-import { StartupError } from "../startup-error.ts";
 import { PRUNE_INTERVAL_MS, startReceiver } from "./receiver.ts";
 
 const TABLES = [

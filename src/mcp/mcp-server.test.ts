@@ -15,8 +15,8 @@ import {
   slowCartTraces,
   statusTraceId,
 } from "#testing/traces.ts";
+import { StartupError } from "#utils/startup-error.ts";
 
-import { StartupError } from "../startup-error.ts";
 import { startMcpServer } from "./mcp-server.ts";
 
 test("lists read-only tools for each view", async () => {

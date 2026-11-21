@@ -4,8 +4,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import dedent from "dedent";
 
 import { LOOPBACK_HOST } from "#utils/loopback.ts";
+import { StartupError } from "#utils/startup-error.ts";
 
-import { StartupError } from "../startup-error.ts";
 import { registerTools } from "./tools.ts";
 
 interface McpServerOptions {

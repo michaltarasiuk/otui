@@ -10,9 +10,9 @@ import {
 import dedent from "dedent";
 import { z } from "zod";
 
+import { StartupError } from "#utils/startup-error.ts";
 import { SECOND_MS } from "#utils/time.ts";
 
-import { StartupError } from "../startup-error.ts";
 import { installMacros } from "./macros.ts";
 
 const OtlpServeRows = z.tuple([
