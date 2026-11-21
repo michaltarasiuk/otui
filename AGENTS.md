@@ -30,8 +30,8 @@
 
 - Test through the rendered app: press keys, read the screen by region with `#testing/screen.ts`, never by line index.
 - Drive the app with `#testing/app.tsx`. Inject failures through `renderApp({ connection })`.
-- Wait for a concrete frame, never for time. A screen stays up, keys included, until the next one loads, so after a key that navigates wait for something only the destination shows.
-- Fake global state with `fakeClock`, `fakeTimers`, and `silenceConsoleError`. Restore spies with `using`.
+- After a key that navigates, wait for something only the destination shows: a screen stays up, keys included, until the next one loads.
+- Silence expected console errors with `silenceConsoleError`, and restore spies with `using`.
 
 ## Commits
 

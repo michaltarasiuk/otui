@@ -48,6 +48,12 @@ const BANNED_IMPORTS: BannedImport[] = [
       "Declare keys with <Key name onPress>label</Key> inside KeyHints. " +
       "Key runs onPress through useEffectEvent.",
   },
+  {
+    name: "bun:test",
+    importNames: ["setSystemTime"],
+    message: "Fake the clock with fakeClock from #testing/clock.ts. It restores the time.",
+    allowedIn: ["src/testing/clock.ts"],
+  },
 ];
 
 function layerPatterns(folder: string) {
@@ -123,5 +129,36 @@ export default defineConfig({
     "typescript/use-unknown-in-catch-callback-variable": "warn",
     "unicorn/no-array-callback-reference": "warn",
   },
-  overrides: ["**", ...FOLDERS, ...ALLOWED_FILES].map((files) => importsOverride(files)),
+  overrides: [
+    ...["**", ...FOLDERS, ...ALLOWED_FILES].map((files) => importsOverride(files)),
+    {
+      files: ["**/*.test.ts", "**/*.test.tsx"],
+      rules: {
+        "no-restricted-globals": [
+          "warn",
+          {
+            name: "setTimeout",
+            message:
+              "Wait for a concrete frame or value, never for time: " +
+              "waitForFrame, or pollUntil from #testing/poll.ts.",
+          },
+        ],
+        "no-restricted-properties": [
+          "warn",
+          {
+            object: "Bun",
+            property: "sleep",
+            message:
+              "Wait for a concrete frame or value, never for time: " +
+              "waitForFrame, or pollUntil from #testing/poll.ts.",
+          },
+          {
+            object: "jest",
+            property: "useFakeTimers",
+            message: "Fake timers with fakeTimers from #testing/clock.ts. It restores them.",
+          },
+        ],
+      },
+    },
+  ],
 });
