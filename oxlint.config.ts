@@ -1,4 +1,41 @@
-import { defineConfig } from "oxlint";
+import { defineConfig, type OxlintOverride } from "oxlint";
+
+const SIGNALS = ["services", "traces", "metrics", "logs"];
+
+const LAYERS = [["utils"], ["telemetry", "query", "ui"], SIGNALS, ["app", "mcp"]];
+
+function layerOverride(folder: string): OxlintOverride {
+  const layer = LAYERS.findIndex((folders) => folders.includes(folder));
+  const above = LAYERS.slice(layer + 1).flat();
+  const otherSignals = SIGNALS.includes(folder)
+    ? SIGNALS.filter((signal) => signal !== folder)
+    : [];
+  const group = [...otherSignals, ...above].map((other) => `#${other}/*`);
+
+  return {
+    files: [`src/${folder}/**`],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group,
+              message:
+                "Imports flow one way: utils → telemetry, query, ui → signals → app, mcp. " +
+                "A signal never imports another signal or app; app links the views.",
+            },
+            {
+              group: ["../**"],
+              message:
+                "Import another folder through its # alias, so the import direction is checked.",
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
 
 export default defineConfig({
   plugins: ["typescript", "unicorn", "oxc", "react", "import"],
@@ -31,4 +68,5 @@ export default defineConfig({
     "typescript/use-unknown-in-catch-callback-variable": "warn",
     "unicorn/no-array-callback-reference": "warn",
   },
+  overrides: LAYERS.flat().map((folder) => layerOverride(folder)),
 });
