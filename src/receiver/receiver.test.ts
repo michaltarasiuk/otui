@@ -8,6 +8,7 @@ import { z } from "zod";
 import { fakeTimers } from "#testing/clock.ts";
 import { silenceConsoleError } from "#testing/console.ts";
 import { logsRequest, metricsRequest, TEMPORALITY, tracesRequest } from "#testing/otlp.ts";
+import { pollUntil } from "#testing/poll.ts";
 import { startTestReceiver, type TestReceiver } from "#testing/receiver.ts";
 import { LOOPBACK_HOST } from "#utils/loopback.ts";
 import { StartupError } from "#utils/startup-error.ts";
@@ -29,9 +30,6 @@ const EXPIRED_LOG_COUNT = 10_000;
 const MEMORY_LIMIT_BYTES = 8 * 1024 * 1024;
 const MEMORY_BATCH_COUNT = 20;
 const MEMORY_BATCH_SIZE = 5000;
-
-const PRUNE_TIMEOUT_MS = 3000;
-const PRUNE_POLL_INTERVAL_MS = 10;
 
 async function sendOneOfEach(receiver: TestReceiver, time: Date) {
   const end = new Date(time.getTime() + 1);
@@ -147,16 +145,6 @@ function eachTableWith(rows: number) {
 function triggerPrune() {
   jest.advanceTimersByTime(PRUNE_INTERVAL_MS);
   jest.useRealTimers();
-}
-
-async function pollUntil<T>(read: () => T | Promise<T>, isDone: (value: T) => boolean) {
-  const deadline = performance.now() + PRUNE_TIMEOUT_MS;
-  let value = await read();
-  while (!isDone(value) && performance.now() < deadline) {
-    await Bun.sleep(PRUNE_POLL_INTERVAL_MS);
-    value = await read();
-  }
-  return value;
 }
 
 function pruneAndWaitFor(connection: DuckDBConnection, expected: Record<string, number>) {
