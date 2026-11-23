@@ -21,7 +21,8 @@ interface ServiceMapPageProps {
 
 export function ServiceMapPage({ onOpenTraces, onBack }: ServiceMapPageProps) {
   const connection = useConnection();
-  const { data: calls, isError } = useSuspenseQuery(serviceCallsQuery(connection));
+  const serviceCalls = useSuspenseQuery(serviceCallsQuery(connection));
+  const { data: calls } = serviceCalls;
   const nodes = serviceMap(calls);
 
   const selection = useSelection(nodes, (node) => node.id);
@@ -36,7 +37,7 @@ export function ServiceMapPage({ onOpenTraces, onBack }: ServiceMapPageProps) {
           </Count>
         </Meta>
       </PageHeader>
-      {isError ? (
+      {serviceCalls.isError ? (
         <Placeholder text="Failed to load the service map" variant="error" />
       ) : nodes.length === 0 ? (
         <Placeholder text="Waiting for spans that call another service..." />

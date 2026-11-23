@@ -127,17 +127,19 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
           )}
         </FocusScope>
         {selected !== undefined && (
-          <StepKeys
-            forward="w"
-            backward="shift+w"
-            description="narrow the chart to a shorter window"
-            backwardDescription="widen the chart window"
-            onStep={(step) => setChartWindow((window) => cycle(CHART_WINDOWS, window, step))}
-          >
-            window
-          </StepKeys>
+          <>
+            <StepKeys
+              forward="w"
+              backward="shift+w"
+              description="narrow the chart to a shorter window"
+              backwardDescription="widen the chart window"
+              onStep={(step) => setChartWindow((window) => cycle(CHART_WINDOWS, window, step))}
+            >
+              window
+            </StepKeys>
+            <ScrollKeys target={detailsRef} />
+          </>
         )}
-        {selected !== undefined && <ScrollKeys target={detailsRef} />}
         <PauseKey />
         <RegionKeys regions={regions} region={region} onChange={(region) => setRegion(region)} />
       </KeyHints>

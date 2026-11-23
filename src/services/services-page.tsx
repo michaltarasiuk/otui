@@ -47,8 +47,9 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
   const deferredSelected = useDeferredValue(selected);
 
   const serviceName = deferredSelected?.service_name;
+  const operationsOptions = serviceOperationsQuery(connection, serviceName);
   const { data: operations = [] } = useQuery({
-    ...serviceOperationsQuery(connection, serviceName),
+    ...operationsOptions,
     enabled: serviceName !== undefined,
   });
   const operationSelection = useSelection(operations, (operation) => operation.name);
@@ -115,6 +116,7 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
               traces
             </Key>
           )}
+          <SortKeys columns={SERVICE_SORT_COLUMNS} onChange={(action) => setSort(action)} />
         </FocusScope>
         <FocusScope focused={browsing && region === "operations"}>
           {selected !== undefined && operation !== undefined && (
@@ -122,9 +124,6 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
               traces
             </Key>
           )}
-        </FocusScope>
-        <FocusScope focused={browsing && region === "services"}>
-          <SortKeys columns={SERVICE_SORT_COLUMNS} onChange={(action) => setSort(action)} />
         </FocusScope>
         <FocusScope focused={browsing}>
           <Key name="m" description="show which services call which" onPress={() => onOpenMap()}>
