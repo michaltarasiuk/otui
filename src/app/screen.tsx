@@ -8,10 +8,11 @@ interface ScreenProps {
 }
 
 export function Screen({ mode, children }: ScreenProps) {
-  const [wasVisible, setWasVisible] = useState(mode === "visible");
-  if (mode === "visible" && !wasVisible) {
-    setWasVisible(true);
+  const visible = mode === "visible";
+  const [mounted, setMounted] = useState(visible);
+  if (visible && !mounted) {
+    setMounted(true);
   }
 
-  return <Activity mode={mode}>{wasVisible && children}</Activity>;
+  return mounted && <Activity mode={mode}>{children}</Activity>;
 }
