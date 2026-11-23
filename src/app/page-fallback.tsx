@@ -4,12 +4,10 @@ import { Placeholder } from "#ui/placeholder.tsx";
 
 export function PageLoading() {
   return (
-    // Top padding stands in for the page header row, so the text centers where the page's own
-    // placeholders do.
-    <box flexGrow={1} paddingTop={1}>
+    <Fallback>
       <Placeholder text="Loading..." />
       <KeyHints />
-    </box>
+    </Fallback>
   );
 }
 
@@ -22,9 +20,7 @@ export function PageError({ text, onBack }: PageErrorProps) {
   const retry = useRetry();
 
   return (
-    // Top padding stands in for the page header row, so the text centers where the page's own
-    // placeholders do.
-    <box flexGrow={1} paddingTop={1}>
+    <Fallback>
       <Placeholder text={text} variant="error" />
       <KeyHints>
         <Key name="r" onPress={() => retry()}>
@@ -36,6 +32,18 @@ export function PageError({ text, onBack }: PageErrorProps) {
           </Key>
         )}
       </KeyHints>
+    </Fallback>
+  );
+}
+
+interface FallbackProps {
+  children: React.ReactNode;
+}
+
+function Fallback({ children }: FallbackProps) {
+  return (
+    <box flexGrow={1} paddingTop={1}>
+      {children}
     </box>
   );
 }
