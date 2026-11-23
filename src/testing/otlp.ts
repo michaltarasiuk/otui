@@ -3,6 +3,24 @@ export const STATUS_CODE = { error: 2 } as const;
 export const SEVERITY_NUMBER = { debug: 5, info: 9, warn: 13, error: 17, fatal: 21 } as const;
 export const TEMPORALITY = { delta: 1, cumulative: 2 } as const;
 
+const TRACE_ID_LENGTH = 32;
+const SPAN_ID_LENGTH = 16;
+
+function fakeId(seed: string, length: number) {
+  if (!/^[0-9a-f]+$/.test(seed) || length % seed.length !== 0) {
+    throw new Error(`Can't repeat "${seed}" into a ${length}-digit hex ID`);
+  }
+  return seed.repeat(length / seed.length);
+}
+
+export function fakeTraceId(seed: string) {
+  return fakeId(seed, TRACE_ID_LENGTH);
+}
+
+export function fakeSpanId(seed: string) {
+  return fakeId(seed, SPAN_ID_LENGTH);
+}
+
 type AttributeValue = string | number | boolean;
 type AttributeMap = Record<string, AttributeValue>;
 

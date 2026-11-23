@@ -2,10 +2,10 @@ import { jest, onTestFinished, setSystemTime } from "bun:test";
 
 import { SECOND_MS } from "#utils/time.ts";
 
-const BASE_TIME = Date.parse("2026-10-28T12:00:00.000Z");
+export const NOON_MS = Date.parse("2026-10-28T12:00:00.000Z");
 
 export function at(ms: number) {
-  return new Date(BASE_TIME + ms);
+  return new Date(NOON_MS + ms);
 }
 
 export function atSecond(seconds: number) {

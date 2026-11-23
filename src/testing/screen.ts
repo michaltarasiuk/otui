@@ -76,6 +76,17 @@ export function spanDiffRows(frame: string) {
   return rowsAbovePanel(frame, "Change").map((line) => collapseWhitespace(line));
 }
 
+export function lineOf(frame: string, text: string) {
+  return frame.split("\n").findIndex((line) => collapseWhitespace(line).includes(text));
+}
+
+export function detailsLineOf(frame: string, text: string) {
+  const lines = frame.split("\n");
+  const border = lines.findIndex((line) => line.startsWith(DETAILS_BORDER));
+  const line = lines.slice(border + 1).findIndex((line) => collapseWhitespace(line).includes(text));
+  return border === -1 || line === -1 ? -1 : border + 1 + line;
+}
+
 export function keyHints(frame: string) {
   return textLines(frame).at(-1) ?? "";
 }
