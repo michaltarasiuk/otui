@@ -55,10 +55,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
   const [clears, setClears] = useState(0);
   const [help, setHelp] = useState<HelpEntry[]>();
   const [marked, setMarked] = useState<MarkedTrace>();
-
   const queryClient = useQueryClient();
-  const keymap = useKeymap();
-  const editing = useEditing();
 
   async function clear() {
     try {
@@ -73,28 +70,26 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
     await queryClient.resetQueries();
   }
 
-  return (
-    <AppKeys
-      value={
+  const keymap = useKeymap();
+  const editing = useEditing();
+  const keys = (
+    <>
+      {!editing && (
         <>
-          {!editing && (
-            <>
-              <RegionKeys
-                regions={REGIONS}
-                region={region}
-                onChange={(region) => setRegion(region)}
-              >
-                next region
-              </RegionKeys>
-              <Key name="?" onPress={() => setHelp(activeHelp(keymap))}>
-                help
-              </Key>
-            </>
-          )}
-          <Key name="ctrl+l" description="clear telemetry" onPress={() => clear()} />
+          <RegionKeys regions={REGIONS} region={region} onChange={(region) => setRegion(region)}>
+            next region
+          </RegionKeys>
+          <Key name="?" onPress={() => setHelp(activeHelp(keymap))}>
+            help
+          </Key>
         </>
-      }
-    >
+      )}
+      <Key name="ctrl+l" description="clear telemetry" onPress={() => clear()} />
+    </>
+  );
+
+  return (
+    <AppKeys value={keys}>
       <Window>
         <KeysScope enabled={help === undefined}>
           <TopBar>
