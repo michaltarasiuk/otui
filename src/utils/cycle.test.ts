@@ -21,10 +21,10 @@ test("cycle wraps around the ends", () => {
 });
 
 test("cycle enters at the first or the last item when the current one is missing", () => {
-  const services: [string, ...string[]] = ["cart", "checkout", "payment"];
+  const values: [string, ...string[]] = ["value-a", "value-b", "value-c"];
 
-  expect(cycle(services, "frontend", 1)).toBe("cart");
-  expect(cycle(services, "frontend", -1)).toBe("payment");
+  expect(cycle(values, "value-d", 1)).toBe("value-a");
+  expect(cycle(values, "value-d", -1)).toBe("value-c");
 });
 
 test("cycle treats undefined as an item", () => {

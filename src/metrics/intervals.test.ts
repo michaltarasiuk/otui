@@ -1,22 +1,20 @@
 import { describe, expect, test } from "bun:test";
 
+import { SECOND_MS } from "#utils/time.ts";
+
 import { type Distribution, explicitBuckets } from "./distribution.ts";
 import { counterIntervals, distributionIntervals, perSecond } from "./intervals.ts";
 import type { DistributionPoint, NumberPoint } from "./series.ts";
 
-function atSecond(seconds: number) {
-  return seconds * 1000;
-}
-
-function point(time: number, value: number, startTime: number | null = 0): NumberPoint {
+function point(seconds: number, value: number, startSeconds: number | null = 0): NumberPoint {
   return {
-    time: atSecond(time),
-    start_time: startTime === null ? null : atSecond(startTime),
+    time: seconds * SECOND_MS,
+    start_time: startSeconds === null ? null : startSeconds * SECOND_MS,
     value,
   };
 }
 
-function histogramPoint(time: number, counts: number[], startTime = 0): DistributionPoint {
+function histogramPoint(seconds: number, counts: number[], startSeconds = 0): DistributionPoint {
   const distribution: Distribution = {
     count: counts.reduce((total, count) => total + count, 0),
     sum: null,
@@ -24,7 +22,7 @@ function histogramPoint(time: number, counts: number[], startTime = 0): Distribu
     max: null,
     buckets: explicitBuckets([10], counts),
   };
-  return { time: atSecond(time), start_time: atSecond(startTime), distribution };
+  return { time: seconds * SECOND_MS, start_time: startSeconds * SECOND_MS, distribution };
 }
 
 describe("counterIntervals", () => {

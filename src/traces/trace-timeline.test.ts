@@ -13,7 +13,7 @@ function traceAt(index: number, startMs: number) {
   return {
     traceId: (index + 1).toString(16).padStart(32, "0"),
     spanId: (index + 1).toString(16).padStart(16, "0"),
-    name: "GET /api/cart",
+    name: "operation-a",
     start: new Date(startMs),
     end: new Date(startMs + 5),
   };
@@ -24,7 +24,7 @@ async function loadTimeline(agesMs: number[]) {
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "frontend",
+      service: "service-a",
       spans: agesMs.map((ageMs, index) => traceAt(index, now - ageMs)),
     }),
   );

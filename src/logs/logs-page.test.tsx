@@ -1,16 +1,18 @@
 import { expect, test } from "bun:test";
 
+import logList from "#logs/sql/log-list.sql" with { type: "text" };
 import { renderFailedPage, renderPage } from "#testing/app.tsx";
 import { at, fakeClock } from "#testing/clock.ts";
+import { failOnce } from "#testing/connection.ts";
 import { silenceConsoleError } from "#testing/console.ts";
 import {
-  CART_EVENT_ROW,
-  checkoutTrace,
+  EVENT_ROW,
+  failedTrace,
   ERROR_ROW,
   FATAL_ROW,
   NEWEST_FIRST,
   NOTICE_ROW,
-  ORDER_ROW,
+  INFO_ROW,
   otlpLogs,
   renderLogList,
   WARN_ROW,
@@ -20,6 +22,7 @@ import { startTestReceiver } from "#testing/receiver.ts";
 import {
   color,
   keyHints,
+  lineOf,
   lineSpans,
   listLines,
   onList,
@@ -28,7 +31,7 @@ import {
   tableRows,
   textLines,
 } from "#testing/screen.ts";
-import { checkoutTraceId, PLACE_ORDER, placeOrderSpanId } from "#testing/traces.ts";
+import { failedRootSpanId, failedTraceId } from "#testing/traces.ts";
 import { THEME } from "#ui/theme.ts";
 
 test("waits for logs before any arrive", async () => {
@@ -61,21 +64,9 @@ test("raises and lowers the minimum severity", async () => {
   }
 
   await pressSeverityKey(false, "≥ DEBUG", NEWEST_FIRST.slice(1));
-  await pressSeverityKey(false, "≥ INFO", [
-    CART_EVENT_ROW,
-    FATAL_ROW,
-    ERROR_ROW,
-    WARN_ROW,
-    ORDER_ROW,
-  ]);
+  await pressSeverityKey(false, "≥ INFO", [EVENT_ROW, FATAL_ROW, ERROR_ROW, WARN_ROW, INFO_ROW]);
   await pressSeverityKey(false, "≥ WARN", [FATAL_ROW, ERROR_ROW, WARN_ROW]);
-  await pressSeverityKey(true, "≥ INFO", [
-    CART_EVENT_ROW,
-    FATAL_ROW,
-    ERROR_ROW,
-    WARN_ROW,
-    ORDER_ROW,
-  ]);
+  await pressSeverityKey(true, "≥ INFO", [EVENT_ROW, FATAL_ROW, ERROR_ROW, WARN_ROW, INFO_ROW]);
 });
 
 test("wraps the severity filter around to show every log again", async () => {
@@ -103,27 +94,27 @@ test("searches bodies, attribute keys, services, trace IDs, and key=value pairs"
     await app.waitForFrame((frame) => tableRows(frame).length === 7);
   }
 
-  await expectSearch("OutOfMemoryError", [FATAL_ROW]);
-  await expectSearch("user_currency", [ORDER_ROW]);
-  await expectSearch("payment", [ERROR_ROW, WARN_ROW]);
-  await expectSearch(checkoutTraceId.slice(0, 8), [ERROR_ROW, WARN_ROW, ORDER_ROW]);
-  await expectSearch("demo.user_context.loyalty_level=gold", [WARN_ROW]);
+  await expectSearch("message-g", [FATAL_ROW]);
+  await expectSearch("attribute.a", [INFO_ROW]);
+  await expectSearch("service-d", [ERROR_ROW, WARN_ROW]);
+  await expectSearch(failedTraceId.slice(0, 8), [ERROR_ROW, WARN_ROW, INFO_ROW]);
+  await expectSearch("attribute.b=value-b", [WARN_ROW]);
 });
 
 test("keeps an applied search while browsing", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderLogList(receiver);
 
-  await app.search("payment");
+  await app.search("service-d");
   await app.waitForFrame((frame) => tableRows(frame).length === 2);
   app.mockInput.pressEnter();
   await app.waitForFrame(onList);
 
   app.mockInput.pressArrow("down");
 
-  expect(await app.waitForSelection("Payment request failed")).toBe(WARN_ROW);
+  expect(await app.waitForSelection("message-b")).toBe(WARN_ROW);
   const frame = await app.waitForFrame((frame) => pageHeader(frame) === "2 of 7 logs");
-  expect(keyHints(frame)).toStartWith("/payment ");
+  expect(keyHints(frame)).toStartWith("/service-d ");
 });
 
 test("jumps between errors in both directions", async () => {
@@ -132,30 +123,27 @@ test("jumps between errors in both directions", async () => {
   await app.waitForSelection(NOTICE_ROW);
 
   app.mockInput.pressKey("e");
-  expect(await app.waitForSelection("OutOfMemoryError")).toBe(FATAL_ROW);
+  expect(await app.waitForSelection("message-g")).toBe(FATAL_ROW);
 
   app.mockInput.pressKey("e");
-  expect(await app.waitForSelection("Credit card info is invalid.")).toBe(ERROR_ROW);
+  expect(await app.waitForSelection("message-c")).toBe(ERROR_ROW);
 
   app.mockInput.pressKey("e");
-  expect(await app.waitForSelection("OutOfMemoryError")).toBe(FATAL_ROW);
+  expect(await app.waitForSelection("message-g")).toBe(FATAL_ROW);
 
   app.mockInput.pressKey("e", { shift: true });
-  expect(await app.waitForSelection("Credit card info is invalid.")).toBe(ERROR_ROW);
+  expect(await app.waitForSelection("message-c")).toBe(ERROR_ROW);
 });
 
 test("narrows the list to the selected log's trace and back", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderLogList(receiver);
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(FATAL_ROW);
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(ERROR_ROW);
+  await app.selectRow(ERROR_ROW);
 
   app.mockInput.pressKey("t");
   let frame = await app.waitForFrame((frame) => tableRows(frame).length === 3);
   expect(pageHeader(frame)).toBe("trace 22222222 3 of 7 logs");
-  expect(tableRows(frame)).toEqual([ERROR_ROW, WARN_ROW, ORDER_ROW]);
+  expect(tableRows(frame)).toEqual([ERROR_ROW, WARN_ROW, INFO_ROW]);
 
   app.mockInput.pressKey("t");
   frame = await app.waitForFrame((frame) => tableRows(frame).length === 7);
@@ -175,9 +163,7 @@ test("offers trace actions only for logs with a trace", async () => {
   let frame = await app.waitForText("e next error");
   expect(frame).not.toContain("t trace");
 
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(FATAL_ROW);
-  app.mockInput.pressKey("e");
+  await app.selectRow(ERROR_ROW);
   frame = await app.waitForText("t trace");
   expect(keyHints(frame)).toStartWith(
     "/ search e next error return open trace t trace y copy body",
@@ -189,12 +175,12 @@ test("opens the selected log's trace in the traces view and goes back to the log
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
+      service: "service-c",
       spans: [
         {
-          traceId: checkoutTraceId,
-          spanId: placeOrderSpanId,
-          name: PLACE_ORDER,
+          traceId: failedTraceId,
+          spanId: failedRootSpanId,
+          name: "operation-d",
           start: at(0),
           end: at(2500),
         },
@@ -203,105 +189,94 @@ test("opens the selected log's trace in the traces view and goes back to the log
   );
   await using app = await renderLogList(receiver);
   app.mockInput.pressKey("END");
-  await app.waitForSelection(ORDER_ROW);
+  await app.waitForSelection(INFO_ROW);
 
   app.mockInput.pressEnter();
   let frame = await app.waitForText("1 span");
   expect(listLines(frame).slice(0, 2)).toEqual([
-    `${PLACE_ORDER} ${checkoutTraceId}`,
-    "● checkout 12:00:00.000 1 span 2.50s",
+    `operation-d ${failedTraceId}`,
+    "● service-c 12:00:00.000 1 span 2.50s",
   ]);
 
   app.mockInput.pressEscape();
   frame = await app.waitForFrame((frame) => tableRows(frame).length === NEWEST_FIRST.length);
   expect(pageHeader(frame)).toBe("7 logs");
-  expect(await app.waitForSelection("[PlaceOrder]")).toBe(ORDER_ROW);
+  expect(await app.waitForSelection("message-a")).toBe(INFO_ROW);
 });
 
 test("selects the log's span in the trace it opens", async () => {
   await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", checkoutTrace);
+  await receiver.sendHttp("/v1/traces", failedTrace);
   await using app = await renderLogList(receiver);
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(FATAL_ROW);
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(ERROR_ROW);
+  await app.selectRow(ERROR_ROW);
 
   app.mockInput.pressEnter();
   await app.waitForText("2 spans");
 
-  expect(await app.waitForSelection("charge")).toBe("● payment charge 1.50s");
+  expect(await app.waitForSelection("operation-e")).toBe("● service-d operation-e 1.50s");
 });
 
 test("selects the log's span in a trace that is already open", async () => {
   await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", checkoutTrace);
+  await receiver.sendHttp("/v1/traces", failedTrace);
   await receiver.sendHttp("/v1/logs", otlpLogs);
   await using app = await renderPage(receiver, "traces");
 
-  await app.waitForText(PLACE_ORDER);
+  await app.waitForText("operation-d");
   app.mockInput.pressEnter();
   await app.waitForText("2 spans");
-  expect(await app.waitForSelection(PLACE_ORDER)).toBe(`● checkout ${PLACE_ORDER} 2.50s`);
+  expect(await app.waitForSelection("operation-d")).toBe(`● service-c operation-d 2.50s`);
 
   app.mockInput.pressTab({ shift: true });
   await app.openTab("logs");
   await app.waitForRows(NEWEST_FIRST);
   app.mockInput.pressTab();
   await app.waitForFrame(onList);
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(FATAL_ROW);
-  app.mockInput.pressKey("e");
-  await app.waitForSelection(ERROR_ROW);
+  await app.selectRow(ERROR_ROW);
 
   app.mockInput.pressEnter();
   await app.waitForText("2 spans");
 
-  expect(await app.waitForSelection("charge")).toBe("● payment charge 1.50s");
+  expect(await app.waitForSelection("operation-e")).toBe("● service-d operation-e 1.50s");
 });
 
 test("lists identical logs separately and selects each in turn", async () => {
   await using receiver = await startTestReceiver();
-  const repeated = {
-    time: at(1000),
-    severityNumber: SEVERITY_NUMBER.info,
-    body: "get_product_list: cache hit",
-  };
-  const earlier = {
-    time: at(0),
-    severityNumber: SEVERITY_NUMBER.info,
-    body: "get_product_list: cache miss",
-  };
+  const repeated = { time: at(1000), severityNumber: SEVERITY_NUMBER.info, body: "message-a" };
+  const earlier = { time: at(0), severityNumber: SEVERITY_NUMBER.info, body: "message-b" };
   await receiver.sendHttp(
     "/v1/logs",
-    logsRequest({ service: "recommendation", logs: [repeated, repeated, earlier] }),
+    logsRequest({ service: "service-a", logs: [repeated, repeated, earlier] }),
   );
   await using app = await renderPage(receiver, "logs");
 
   const frame = await app.waitForFrame((frame) => tableRows(frame).length === 3);
   expect(tableRows(frame)).toEqual([
-    "12:00:01.000 INFO ● recommendation get_product_list: cache hit",
-    "12:00:01.000 INFO ● recommendation get_product_list: cache hit",
-    "12:00:00.000 INFO ● recommendation get_product_list: cache miss",
+    "12:00:01.000 INFO ● service-a message-a",
+    "12:00:01.000 INFO ● service-a message-a",
+    "12:00:00.000 INFO ● service-a message-b",
   ]);
 
-  const firstRowLine = frame.split("\n").findIndex((line) => line.includes("cache hit"));
-  await app.waitForSelection("cache hit", { line: firstRowLine });
+  const firstRowLine = lineOf(frame, "message-a");
+  await app.waitForSelection("message-a", { line: firstRowLine });
   app.mockInput.pressArrow("down");
-  await app.waitForSelection("cache hit", { line: firstRowLine + 1 });
+  await app.waitForSelection("message-a", { line: firstRowLine + 1 });
   app.mockInput.pressArrow("down");
-  await app.waitForSelection("cache miss");
+  await app.waitForSelection("message-b");
 });
 
-test("shows an error when logs cannot be loaded", async () => {
+test("shows an error when logs cannot be loaded and retries", async () => {
   silenceConsoleError();
   await using receiver = await startTestReceiver();
+  await receiver.sendHttp("/v1/logs", otlpLogs);
   const connection = await receiver.connect();
-  await connection.run("DROP TABLE otlp_logs");
+  using _ = failOnce(connection, logList);
 
-  await using app = await renderFailedPage(receiver, "logs");
-
+  await using app = await renderFailedPage(receiver, "logs", { connection });
   await app.waitForText("Failed to load logs");
+  app.mockInput.pressKey("r");
+
+  await app.waitForRows(NEWEST_FIRST);
 });
 
 test("copies the selected log's body", async () => {
@@ -311,7 +286,7 @@ test("copies the selected log's body", async () => {
   app.mockInput.pressKey("y");
 
   await app.waitForFrame((frame) => keyHints(frame).includes("y copied"));
-  expect(app.copied).toEqual(["Database connection established"]);
+  expect(app.copied).toEqual(["message-f"]);
 });
 
 test("colors each severity", async () => {
@@ -320,13 +295,9 @@ test("colors each severity", async () => {
 
   const frame = await app.captureSpans();
 
-  expect(spanColors(lineSpans(frame, "Credit card info"), "ERROR").fg).toEqual(
-    color(THEME.textError),
-  );
-  expect(spanColors(lineSpans(frame, "Payment request failed"), "WARN").fg).toEqual(
-    color(THEME.textWarning),
-  );
-  expect(spanColors(lineSpans(frame, "[PlaceOrder]"), "INFO").fg).toEqual(color(THEME.text));
+  expect(spanColors(lineSpans(frame, "message-c"), "ERROR").fg).toEqual(color(THEME.textError));
+  expect(spanColors(lineSpans(frame, "message-b"), "WARN").fg).toEqual(color(THEME.textWarning));
+  expect(spanColors(lineSpans(frame, "message-a"), "INFO").fg).toEqual(color(THEME.text));
 });
 
 test("charts the logs over time and narrows the list to a column", async () => {

@@ -49,13 +49,13 @@ test("offers only the search's keys while typing a search", async () => {
   await app.openTab("traces");
   app.mockInput.pressTab();
   await app.waitForFrame(onList);
-  await app.search("cart");
+  await app.search("operation");
 
-  let frame = await app.waitForFrame((frame) => keyHints(frame).startsWith("/cart"));
+  let frame = await app.waitForFrame((frame) => keyHints(frame).startsWith("/operation"));
   expect(keyHints(frame)).toEndWith("return apply escape clear");
 
   app.mockInput.pressTab();
   await app.mockInput.typeText("s");
-  frame = await app.waitForFrame((frame) => keyHints(frame).startsWith("/carts"));
+  frame = await app.waitForFrame((frame) => keyHints(frame).startsWith("/operations"));
   expect(keyHints(frame)).toEndWith("return apply escape clear");
 });

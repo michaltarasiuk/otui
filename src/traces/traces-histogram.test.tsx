@@ -1,58 +1,62 @@
 import { expect, test } from "bun:test";
 
-import { RGBA } from "@opentui/core";
-
 import { renderPage, type TestApp } from "#testing/app.tsx";
 import { at, fakeClock } from "#testing/clock.ts";
-import { STATUS_CODE, tracesRequest } from "#testing/otlp.ts";
+import { fakeSpanId, fakeTraceId, STATUS_CODE, tracesRequest } from "#testing/otlp.ts";
 import { startTestReceiver, type TestReceiver } from "#testing/receiver.ts";
-import { chartLines, keyHints, pageHeader, tableRows } from "#testing/screen.ts";
-import { PLACE_ORDER } from "#testing/traces.ts";
+import {
+  chartLines,
+  color,
+  keyHints,
+  pageHeader,
+  selectedBackground,
+  tableRows,
+} from "#testing/screen.ts";
 import { HISTOGRAM_COLUMN_WIDTH } from "#ui/histogram/time-histogram.tsx";
 import { THEME } from "#ui/theme.ts";
 
 const LIVE_TIME_MS = 50_000;
 
-const TIMELINE_CART_ROW = "12:00:00.000 ● frontend GET /api/cart 1 120.0ms";
-const TIMELINE_CHECKOUT_ROW = `12:00:20.000 ● checkout ${PLACE_ORDER} 1 1 500.0ms`;
-const TIMELINE_STATUS_ROW = "12:00:40.000 ● image-provider GET /status 1 1.0ms";
-const TIMELINE_OLD_ROW = "11:20:00.000 ● frontend GET /product/[productId] 1 10.0ms";
+const EARLY_ROW = "12:00:00.000 ● service-a operation-a 1 120.0ms";
+const ERROR_ROW = "12:00:20.000 ● service-b operation-b 1 1 500.0ms";
+const LATE_ROW = "12:00:40.000 ● service-c operation-c 1 1.0ms";
+const OLD_ROW = "11:20:00.000 ● service-a operation-d 1 10.0ms";
 
 const bar = "█".repeat(HISTOGRAM_COLUMN_WIDTH);
 const MINUTE_TICKS = "11:52 11:53 11:54 11:55 11:56 11:57 11:58 11:59 12:00";
 
 const timelineTraces = tracesRequest(
   {
-    service: "frontend",
+    service: "service-a",
     spans: [
       {
-        traceId: "6".repeat(32),
-        spanId: "6a".repeat(8),
-        name: "GET /api/cart",
+        traceId: fakeTraceId("1"),
+        spanId: fakeSpanId("1a"),
+        name: "operation-a",
         start: at(0),
         end: at(120),
       },
     ],
   },
   {
-    service: "image-provider",
+    service: "service-c",
     spans: [
       {
-        traceId: "8".repeat(32),
-        spanId: "8a".repeat(8),
-        name: "GET /status",
+        traceId: fakeTraceId("3"),
+        spanId: fakeSpanId("3a"),
+        name: "operation-c",
         start: at(40_000),
         end: at(40_001),
       },
     ],
   },
   {
-    service: "checkout",
+    service: "service-b",
     spans: [
       {
-        traceId: "7".repeat(32),
-        spanId: "7a".repeat(8),
-        name: PLACE_ORDER,
+        traceId: fakeTraceId("2"),
+        spanId: fakeSpanId("2a"),
+        name: "operation-b",
         start: at(20_000),
         end: at(20_500),
         status: { code: STATUS_CODE.error },
@@ -62,12 +66,12 @@ const timelineTraces = tracesRequest(
 );
 
 const oldTrace = tracesRequest({
-  service: "frontend",
+  service: "service-a",
   spans: [
     {
-      traceId: "9".repeat(32),
-      spanId: "9a".repeat(8),
-      name: "GET /product/[productId]",
+      traceId: fakeTraceId("4"),
+      spanId: fakeSpanId("4a"),
+      name: "operation-d",
       start: at(-40 * 60_000),
       end: at(-40 * 60_000 + 10),
     },
@@ -89,9 +93,10 @@ async function renderHistogram(
     await receiver.sendHttp("/v1/traces", oldTrace);
   }
   const app = await renderPage(receiver, "traces", { size });
-  await app.waitForText(TIMELINE_STATUS_ROW.slice(0, 12));
+  await app.waitForText(LATE_ROW.slice(0, 12));
   return app;
 }
+
 async function showsOnly(app: TestApp, row: string, range: string, totalCount = 3) {
   const frame = await app.waitForRows([row]);
   expect(pageHeader(frame)).toBe(`${range} 1 of ${totalCount} traces`);
@@ -128,16 +133,18 @@ test("colors the histogram's errors apart from the other traces", async () => {
   await using app = await renderHistogram(receiver);
   await app.waitForText("Traces over time");
 
-  expect((await barSpans(app)).map((span) => span.fg.toInts())).toEqual(
-    [THEME.bar, THEME.textError, THEME.bar].map((hex) => RGBA.fromHex(hex).toInts()),
-  );
+  expect((await barSpans(app)).map((span) => span.fg.toInts())).toEqual([
+    color(THEME.bar),
+    color(THEME.textError),
+    color(THEME.bar),
+  ]);
 });
 
 test("narrows the histogram with the search and the errors filter", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderHistogram(receiver);
 
-  await app.search("cart");
+  await app.search("operation-a");
   let frame = await app.waitForFrame((frame) => !frame.includes("■ errors"));
   expect(chartLines(frame)).toEqual([
     "Traces over time 10s per column",
@@ -161,16 +168,16 @@ test("moves the marker over the timeline, latest bucket first", async () => {
   await using app = await renderHistogram(receiver);
 
   app.mockInput.pressArrow("right");
-  await showsOnly(app, TIMELINE_STATUS_ROW, "12:00:40–12:00:50");
+  await showsOnly(app, LATE_ROW, "12:00:40–12:00:50");
 
   app.mockInput.pressArrow("left");
-  await showsOnly(app, TIMELINE_CHECKOUT_ROW, "12:00:20–12:00:30");
+  await showsOnly(app, ERROR_ROW, "12:00:20–12:00:30");
 
   app.mockInput.pressArrow("left");
-  await showsOnly(app, TIMELINE_CART_ROW, "12:00:00–12:00:10");
+  await showsOnly(app, EARLY_ROW, "12:00:00–12:00:10");
 
   app.mockInput.pressArrow("right");
-  await showsOnly(app, TIMELINE_CHECKOUT_ROW, "12:00:20–12:00:30");
+  await showsOnly(app, ERROR_ROW, "12:00:20–12:00:30");
 });
 
 test("scrolls the timeline to keep the marker in view", async () => {
@@ -182,10 +189,10 @@ test("scrolls the timeline to keep the marker in view", async () => {
   expect(axisLine(frame)).toBe(MINUTE_TICKS);
 
   for (const [arrow, row, range] of [
-    ["right", TIMELINE_STATUS_ROW, "12:00:40–12:00:50"],
-    ["left", TIMELINE_CHECKOUT_ROW, "12:00:20–12:00:30"],
-    ["left", TIMELINE_CART_ROW, "12:00:00–12:00:10"],
-    ["left", TIMELINE_OLD_ROW, "11:20:00–11:20:10"],
+    ["right", LATE_ROW, "12:00:40–12:00:50"],
+    ["left", ERROR_ROW, "12:00:20–12:00:30"],
+    ["left", EARLY_ROW, "12:00:00–12:00:10"],
+    ["left", OLD_ROW, "11:20:00–11:20:10"],
   ] as const) {
     app.mockInput.pressArrow(arrow);
     frame = await showsOnly(app, row, range, 4);
@@ -209,7 +216,7 @@ test("highlights the selected bucket's column", async () => {
   await app.waitForText("1 of 3 traces");
 
   const highlighted = (await app.captureSpans()).lines.filter(({ spans }) =>
-    spans.some((span) => span.bg.equals(RGBA.fromHex(THEME.backgroundSelected))),
+    spans.some((span) => span.bg.equals(selectedBackground)),
   );
   expect(highlighted).toHaveLength(4 + 1);
 });
@@ -232,11 +239,11 @@ test("keeps the selected bucket when the search leaves it without traces", async
   app.mockInput.pressArrow("right");
   await app.waitForText("1 of 3 traces");
 
-  await app.search("cart");
+  await app.search("operation-a");
 
   const frame = await app.waitForText("No traces match");
   expect(pageHeader(frame)).toBe("12:00:40–12:00:50 0 of 3 traces");
-  expect(keyHints(frame)).toStartWith("/cart ");
+  expect(keyHints(frame)).toStartWith("/operation-a ");
   expect(frame).toContain("Traces over time");
 });
 

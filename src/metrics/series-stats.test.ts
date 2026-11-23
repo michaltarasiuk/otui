@@ -27,7 +27,7 @@ function metric(
     temporality,
     name,
     unit,
-    service_name: "cart",
+    service_name: "service-a",
     description: "",
     last_time: 0,
     series_count: 1,
@@ -53,7 +53,7 @@ describe("seriesStats", () => {
       stats: { value: 1536, min: 512, max: 2048, latest_points: [] },
     });
 
-    expect(seriesStats(metric("gauge", "v8js.memory.heap.used", "By", null), series)).toEqual({
+    expect(seriesStats(metric("gauge", "metric.a", "By", null), series)).toEqual({
       last: "1.5 KiB",
       min: "512 B",
       max: "2.0 KiB",
@@ -66,9 +66,10 @@ describe("seriesStats", () => {
       stats: { value: 150, min: 100, max: 150, latest_points: [point(20, 150), point(10, 100)] },
     });
 
-    expect(
-      seriesStats(metric("counter", "feature_flag.evaluation_requests_total", "{request}"), series),
-    ).toEqual({ rate: "5/s", total: "150" });
+    expect(seriesStats(metric("counter", "metric.a", "{request}"), series)).toEqual({
+      rate: "5/s",
+      total: "150",
+    });
   });
 
   test("shows a delta counter's rate from its last point", () => {
@@ -77,12 +78,10 @@ describe("seriesStats", () => {
       stats: { value: 70, min: 30, max: 70, latest_points: [point(20, 40, 10), point(10, 30)] },
     });
 
-    expect(
-      seriesStats(
-        metric("counter", "feature_flag.evaluation_requests_total", "{request}", 1),
-        series,
-      ),
-    ).toEqual({ rate: "4/s", total: "70" });
+    expect(seriesStats(metric("counter", "metric.a", "{request}", 1), series)).toEqual({
+      rate: "4/s",
+      total: "70",
+    });
   });
 
   test("leaves the rate blank before a cumulative counter's second export", () => {
@@ -91,9 +90,9 @@ describe("seriesStats", () => {
       stats: { value: 100, min: 100, max: 100, latest_points: [point(10, 100)] },
     });
 
-    expect(
-      seriesStats(metric("counter", "feature_flag.evaluation_requests_total", "{request}"), series),
-    ).toMatchObject({ rate: "" });
+    expect(seriesStats(metric("counter", "metric.a", "{request}"), series)).toMatchObject({
+      rate: "",
+    });
   });
 
   test("shows a histogram's count, percentiles, and max", () => {
@@ -109,7 +108,7 @@ describe("seriesStats", () => {
       },
     });
 
-    expect(seriesStats(metric("histogram", "traces.span.metrics.duration", "ms"), series)).toEqual({
+    expect(seriesStats(metric("histogram", "metric.a", "ms"), series)).toEqual({
       count: "10",
       p50: "27.5ms",
       p95: "72.5ms",
@@ -124,7 +123,7 @@ describe("seriesStats", () => {
       stats: { count: 5, sum: null, min: null, max: null, bounds: [], bucket_counts: [5] },
     });
 
-    expect(seriesStats(metric("histogram", "traces.span.metrics.duration", "ms"), series)).toEqual({
+    expect(seriesStats(metric("histogram", "metric.a", "ms"), series)).toEqual({
       count: "5",
       p50: "",
       p95: "",

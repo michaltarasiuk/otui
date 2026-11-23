@@ -11,12 +11,12 @@ import {
   pageHeader,
   textLines,
 } from "#testing/screen.ts";
-import { otlpTraces, PLACE_ORDER } from "#testing/traces.ts";
+import { otlpTraces } from "#testing/traces.ts";
 
-const CART_ROW = "● cart 0.2/min 0.0% 80.0ms 80.0ms 80.0ms 1";
-const CHECKOUT_ROW = "● checkout 0.2/min 100.0% 450.0ms 450.0ms 450.0ms 1";
-const FRAUD_ROW = "● fraud-detection 0.2/min 0.0% 40.0ms 40.0ms 40.0ms 1";
-const FRONTEND_ROW = "● frontend 0.2/min 0.0% 120.0ms 120.0ms 120.0ms 1";
+const SERVICE_A_ROW = "● service-a 0.2/min 0.0% 120.0ms 120.0ms 120.0ms 1";
+const SERVICE_B_ROW = "● service-b 0.2/min 0.0% 80.0ms 80.0ms 80.0ms 1";
+const SERVICE_C_ROW = "● service-c 0.2/min 100.0% 450.0ms 450.0ms 450.0ms 1";
+const SERVICE_E_ROW = "● service-e 0.2/min 0.0% 40.0ms 40.0ms 40.0ms 1";
 
 beforeEach(() => {
   fakeClock(at(60_000));
@@ -54,7 +54,7 @@ test("lists each service's rate, errors, and latency from its entry spans", asyn
 
   expect(pageHeader(frame)).toBe("last 5 min · 4 services");
   expect(textLines(frame)).toContain("Service ▼ Rate Errors p50 p95 p99 Spans");
-  expect(serviceRows(frame)).toEqual([CART_ROW, CHECKOUT_ROW, FRAUD_ROW, FRONTEND_ROW]);
+  expect(serviceRows(frame)).toEqual([SERVICE_A_ROW, SERVICE_B_ROW, SERVICE_C_ROW, SERVICE_E_ROW]);
 });
 
 test("sorts by errors and by p95", async () => {
@@ -62,52 +62,52 @@ test("sorts by errors and by p95", async () => {
   await using app = await renderServices(receiver);
 
   app.mockInput.pressKey("o");
-  let frame = await app.waitForFrame((frame) => serviceRows(frame)[0] === CHECKOUT_ROW);
-  expect(textLines(frame)).toContain("Service Rate ▼ Errors p50 p95 p99 Spans");
+  let frame = await app.waitForFrame((frame) =>
+    textLines(frame).includes("Service Rate ▼ Errors p50 p95 p99 Spans"),
+  );
+  expect(serviceRows(frame)[0]).toBe(SERVICE_C_ROW);
 
   app.mockInput.pressKey("o");
   frame = await app.waitForFrame((frame) =>
-    Bun.deepEquals(serviceRows(frame), [CHECKOUT_ROW, FRONTEND_ROW, CART_ROW, FRAUD_ROW]),
+    textLines(frame).includes("Service Rate Errors p50 ▼ p95 p99 Spans"),
   );
-  expect(textLines(frame)).toContain("Service Rate Errors p50 ▼ p95 p99 Spans");
+  expect(serviceRows(frame)).toEqual([SERVICE_C_ROW, SERVICE_A_ROW, SERVICE_B_ROW, SERVICE_E_ROW]);
 });
 
 test("shows the selected service's operations", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderServices(receiver);
 
-  app.mockInput.pressArrow("down");
+  await app.selectRow("service-c");
 
   const frame = await app.waitForFrame(
     (frame) =>
-      detailsLines(frame).includes("● checkout server and consumer spans") &&
+      detailsLines(frame).includes("● service-c server and consumer spans") &&
       detailsLines(frame).length === 3,
   );
   expect(detailsLines(frame)).toEqual([
-    "● checkout server and consumer spans",
+    "● service-c server and consumer spans",
     "Operation Rate Errors p50 p95 p99 Spans",
-    `${PLACE_ORDER} 0.2/min 100.0% 450.0ms 450.0ms 450.0ms 1`,
+    `operation-d 0.2/min 100.0% 450.0ms 450.0ms 450.0ms 1`,
   ]);
 });
 
 test("opens an operation's traces, slowest first, at the operation's span", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderServices(receiver);
-  app.mockInput.pressArrow("down");
-  app.mockInput.pressArrow("down");
-  await app.waitForSelection("fraud-detection");
+  await app.selectRow("service-e");
 
   app.mockInput.pressTab();
-  await app.waitForSelection("orders process");
+  await app.waitForSelection("operation-f");
   app.mockInput.pressEnter();
 
-  let frame = await app.waitForFrame((frame) => pageHeader(frame).endsWith("1 of 3 traces"));
-  expect(pageHeader(frame)).toBe("● fraud-detection orders process 1 of 3 traces");
+  const frame = await app.waitForFrame((frame) => pageHeader(frame).endsWith("1 of 3 traces"));
+  expect(pageHeader(frame)).toBe("● service-e operation-f 1 of 3 traces");
   expect(textLines(frame)).toContain("Time Service Name Spans Errors ▼ Duration");
 
   app.mockInput.pressEnter();
-  frame = await app.waitForFrame(onDetails);
-  expect(await app.waitForSelection("orders process")).toContain("orders process");
+  await app.waitForFrame(onDetails);
+  expect(await app.waitForSelection("operation-f")).toBe("● service-e operation-f 40.0ms");
 
   app.mockInput.pressEscape();
   await app.waitForFrame((frame) => pageHeader(frame).endsWith("1 of 3 traces"));
@@ -118,7 +118,7 @@ test("opens an operation's traces, slowest first, at the operation's span", asyn
 test("moves between services and operations with tab", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderServices(receiver);
-  await app.waitForSelection("cart");
+  await app.waitForSelection("service-a");
 
   app.mockInput.pressTab();
   let frame = await app.waitForFrame((frame) => !keyHints(frame).includes("o sort"));
@@ -132,7 +132,7 @@ test("moves between services and operations with tab", async () => {
 test("cycles focus through the tab bar, services, and operations", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderServices(receiver);
-  await app.waitForSelection("cart");
+  await app.waitForSelection("service-a");
   const onServices = (frame: string) => keyHints(frame).includes("o sort");
   const onOperations = (frame: string) =>
     keyHints(frame).includes("return traces") && !onServices(frame);
@@ -156,12 +156,12 @@ test("cycles focus through the tab bar, services, and operations", async () => {
 test("opens the selected service's traces and comes back", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderServices(receiver);
-  await app.waitForSelection("cart");
+  await app.waitForSelection("service-a");
 
   app.mockInput.pressEnter();
 
   const frame = await app.waitForFrame((frame) => pageHeader(frame).endsWith("1 of 3 traces"));
-  expect(pageHeader(frame)).toBe("● cart 1 of 3 traces");
+  expect(pageHeader(frame)).toBe("● service-a 1 of 3 traces");
   expect(keyHints(frame)).toContain("escape back");
 
   app.mockInput.pressEscape();
@@ -171,18 +171,17 @@ test("opens the selected service's traces and comes back", async () => {
 test("never shows the previous service's traces over time", async () => {
   await using receiver = await startTestReceiver();
   await using app = await renderServices(receiver);
-  await app.waitForSelection("cart");
+  await app.waitForSelection("service-a");
 
   app.mockInput.pressEnter();
   let frame = await app.waitForFrame((frame) => chartLines(frame).length > 0);
-  const cartChart = chartLines(frame);
+  const previousChart = chartLines(frame);
   app.mockInput.pressEscape();
   await app.waitForFrame((frame) => pageHeader(frame) === "last 5 min · 4 services");
 
-  app.mockInput.pressArrow("down");
-  await app.waitForSelection("checkout");
+  await app.selectRow("service-c");
   app.mockInput.pressEnter();
 
-  frame = await app.waitForFrame((frame) => pageHeader(frame).startsWith("● checkout"));
-  expect(chartLines(frame)).not.toEqual(cartChart);
+  frame = await app.waitForFrame((frame) => pageHeader(frame).startsWith("● service-c"));
+  expect(chartLines(frame)).not.toEqual(previousChart);
 });

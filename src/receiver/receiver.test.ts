@@ -7,7 +7,14 @@ import { z } from "zod";
 
 import { fakeTimers } from "#testing/clock.ts";
 import { silenceConsoleError } from "#testing/console.ts";
-import { logsRequest, metricsRequest, TEMPORALITY, tracesRequest } from "#testing/otlp.ts";
+import {
+  fakeSpanId,
+  fakeTraceId,
+  logsRequest,
+  metricsRequest,
+  TEMPORALITY,
+  tracesRequest,
+} from "#testing/otlp.ts";
 import { pollUntil } from "#testing/poll.ts";
 import { startTestReceiver, type TestReceiver } from "#testing/receiver.ts";
 import { LOOPBACK_HOST } from "#utils/loopback.ts";
@@ -36,12 +43,12 @@ async function sendOneOfEach(receiver: TestReceiver, time: Date) {
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "frontend",
+      service: "service-a",
       spans: [
         {
-          traceId: "1".repeat(32),
-          spanId: "1".repeat(16),
-          name: "GET /api/cart",
+          traceId: fakeTraceId("1"),
+          spanId: fakeSpanId("1"),
+          name: "operation-a",
           start: time,
           end,
         },
@@ -50,30 +57,27 @@ async function sendOneOfEach(receiver: TestReceiver, time: Date) {
   );
   await receiver.sendHttp(
     "/v1/logs",
-    logsRequest({
-      service: "cart",
-      logs: [{ time, body: "GetCartAsync called with userId={userId}" }],
-    }),
+    logsRequest({ service: "service-a", logs: [{ time, body: "message-a" }] }),
   );
   await receiver.sendHttp(
     "/v1/metrics",
     metricsRequest({
-      service: "frontend",
+      service: "service-a",
       metrics: [
-        { name: "v8js.memory.heap.used", gauge: [{ time, value: 4 }] },
+        { name: "metric.a", gauge: [{ time, value: 4 }] },
         {
-          name: "nodejs.eventloop.time",
+          name: "metric.b",
           sum: [{ start: time, time, value: 1 }],
           monotonic: true,
           temporality: TEMPORALITY.cumulative,
         },
         {
-          name: "http.server.request.duration",
+          name: "metric.c",
           histogram: [{ start: time, time, count: 1, bounds: [10], counts: [1, 0] }],
           temporality: TEMPORALITY.cumulative,
         },
         {
-          name: "v8js.gc.duration",
+          name: "metric.d",
           exponentialHistogram: [
             { start: time, time, count: 1, scale: 0, positive: { offset: 0, counts: [1] } },
           ],
@@ -84,8 +88,9 @@ async function sendOneOfEach(receiver: TestReceiver, time: Date) {
   );
 }
 
-function uncompressibleCartLog() {
-  return `GetCartAsync called with userId=${crypto.randomUUID()} cartId=${crypto.randomUUID()} sessionId=${crypto.randomUUID()}`;
+function uncompressibleLog() {
+  const uuids = Array.from({ length: 4 }, () => crypto.randomUUID());
+  return `message-a ${uuids.join(" ")}`;
 }
 
 async function sendLogBatches(receiver: TestReceiver) {
@@ -98,10 +103,10 @@ async function sendLogBatches(receiver: TestReceiver) {
     await receiver.sendHttp(
       "/v1/logs",
       logsRequest({
-        service: "cart",
+        service: "service-a",
         logs: Array.from({ length: MEMORY_BATCH_SIZE }, () => ({
           time,
-          body: uncompressibleCartLog(),
+          body: uncompressibleLog(),
         })),
       }),
     );
@@ -192,10 +197,10 @@ test("drops logs by their observed time when they carry no time", async () => {
   await receiver.sendHttp(
     "/v1/logs",
     logsRequest({
-      service: "shipping",
+      service: "service-a",
       logs: [
-        { observedTime: new Date(Date.now() - 2 * RETENTION_MS), body: "Requesting quote" },
-        { observedTime: new Date(), body: "Sending Quote" },
+        { observedTime: new Date(Date.now() - 2 * RETENTION_MS), body: "message-a" },
+        { observedTime: new Date(), body: "message-b" },
       ],
     }),
   );
@@ -211,7 +216,7 @@ test("drops logs that carry neither a time nor an observed time", async () => {
 
   await receiver.sendHttp(
     "/v1/logs",
-    logsRequest({ service: "shipping", logs: [{ body: "Requesting quote" }] }),
+    logsRequest({ service: "service-a", logs: [{ body: "message-a" }] }),
   );
 
   expect(await pruneAndWaitFor(connection, eachTableWith(0))).toEqual(eachTableWith(0));
@@ -226,10 +231,10 @@ test("releases the memory of pruned telemetry", async () => {
   await receiver.sendHttp(
     "/v1/logs",
     logsRequest({
-      service: "cart",
+      service: "service-a",
       logs: Array.from({ length: EXPIRED_LOG_COUNT }, (_, index) => ({
         time: expired,
-        body: `GetCartAsync called with userId=${index}`,
+        body: `message-${index}`,
       })),
     }),
   );
@@ -335,7 +340,7 @@ test("closes its connections and stops listening when disposed", async () => {
 });
 
 test("names the ports when it can't listen on them", async () => {
-  const receiver = await startTestReceiver();
+  await using receiver = await startTestReceiver();
   const { port: httpPort } = new URL(receiver.httpUrl);
   const { port: grpcPort } = new URL(receiver.grpcUrl);
 
@@ -354,5 +359,4 @@ test("names the ports when it can't listen on them", async () => {
       `couldn't listen on ${LOOPBACK_HOST}:${httpPort} and ${LOOPBACK_HOST}:${grpcPort}`,
     ),
   );
-  await receiver[Symbol.asyncDispose]();
 });

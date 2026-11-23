@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test";
 
 import { renderApp } from "#testing/app.tsx";
-import { tracesRequest } from "#testing/otlp.ts";
+import { at } from "#testing/clock.ts";
+import { fakeSpanId, fakeTraceId, tracesRequest } from "#testing/otlp.ts";
 import { startTestReceiver } from "#testing/receiver.ts";
-import { keyHints, onList, pageHeader, tabStyles } from "#testing/screen.ts";
+import { keyHints, lineOf, onList, tabStyles } from "#testing/screen.ts";
 
 const WAITING_FOR_SERVICES = "Waiting for server or consumer spans...";
 
@@ -81,39 +82,35 @@ test("keeps showing the current tab while the view has focus", async () => {
   });
 });
 
-function lineOf(frame: string, text: string) {
-  return frame.split("\n").findIndex((line) => line.includes(text));
-}
-
 test("switches tabs and selects rows with the mouse", async () => {
   await using receiver = await startTestReceiver();
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
+      service: "service-a",
       spans: ["1", "2"].map((digit, index) => ({
-        traceId: digit.repeat(32),
-        spanId: digit.repeat(16),
-        name: `request ${digit}`,
-        start: new Date(index),
-        end: new Date(index + 10),
+        traceId: fakeTraceId(digit),
+        spanId: fakeSpanId(`${digit}a`),
+        name: `operation-${digit}`,
+        start: at(index),
+        end: at(index + 10),
       })),
     }),
   );
   await using app = await renderApp(receiver);
-  await app.waitForFrame((frame) => / services?$/.test(pageHeader(frame)));
+  await app.waitForPage("services");
 
   await app.mockMouse.click(12, 0);
   let frame = await app.waitForFrame(
-    (frame) => frame.includes("Traces over time") && frame.includes("request 1"),
+    (frame) => frame.includes("Traces over time") && frame.includes("operation-1"),
   );
   expect(tabStyles(await app.captureSpans())).toMatchObject({
     Traces: { highlighted: true, fg: "text" },
   });
 
-  await app.mockMouse.click(30, lineOf(frame, "request 1"));
+  await app.mockMouse.click(30, lineOf(frame, "operation-1"));
 
-  expect(await app.waitForSelection("request 1")).toContain("checkout");
+  expect(await app.waitForSelection("operation-1")).toContain("service-a");
   frame = await app.waitForFrame((frame) => keyHints(frame).includes("/ search"));
   expect(tabStyles(await app.captureSpans())).toMatchObject({
     Traces: { highlighted: false, fg: "text" },

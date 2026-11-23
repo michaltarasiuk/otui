@@ -245,6 +245,7 @@ test("keeps the rows in place on the frame more rows arrive", async () => {
   await using screen = await render(<GrowingRows from={3} to={20} />, SCREEN_SIZE);
   await screen.waitForFrame(selected(1));
   screen.mockInput.pressArrow("down");
+  await screen.waitForFrame(selected(2));
   screen.mockInput.pressArrow("down");
   await screen.waitForFrame(selected(3));
 

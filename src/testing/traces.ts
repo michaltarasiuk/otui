@@ -1,152 +1,146 @@
 import { type AppOptions, renderPage } from "./app.tsx";
 import { at } from "./clock.ts";
-import { SPAN_KIND, STATUS_CODE, tracesRequest } from "./otlp.ts";
+import { fakeSpanId, fakeTraceId, SPAN_KIND, STATUS_CODE, tracesRequest } from "./otlp.ts";
 import type { TestReceiver } from "./receiver.ts";
 import { onDetails, pageHeader, spanDiffRows, tableRows } from "./screen.ts";
 
-export const cartTraceId = "1".repeat(32);
-export const checkoutTraceId = "2".repeat(32);
-export const statusTraceId = "3".repeat(32);
-export const rootlessTraceId = "4".repeat(32);
-export const missingParentId = "5".repeat(16);
+export const nestedTraceId = fakeTraceId("1");
+export const failedTraceId = fakeTraceId("2");
+export const singleTraceId = fakeTraceId("3");
+export const rootlessTraceId = fakeTraceId("4");
+export const missingParentId = fakeSpanId("5");
+export const slowNestedTraceId = fakeTraceId("6");
 
-export const placeOrderSpanId = "2a".repeat(8);
-export const chargeSpanId = "2b".repeat(8);
+export const nestedRootSpanId = fakeSpanId("1a");
+export const nestedChildSpanId = fakeSpanId("1b");
+export const failedRootSpanId = fakeSpanId("2a");
+export const failedChildSpanId = fakeSpanId("2b");
 
-export const PLACE_ORDER = "oteldemo.CheckoutService/PlaceOrder";
-export const GET_CART = "POST /oteldemo.CartService/GetCart";
+export const ERROR_CAUSE = "error-a";
+export const ERROR_MESSAGE = `error-b: ${ERROR_CAUSE}`;
 
-export const CHARGE_DECLINED = "Credit card info is invalid.";
-export const CHARGE_FAILED = `failed to charge card: could not charge the card: rpc error: code = Unknown desc = ${CHARGE_DECLINED}`;
+export const NESTED_ROW = "12:00:00.000 ● service-a operation-a 3 120.0ms";
+export const FAILED_ROW = "12:00:01.000 ● service-c operation-d 3 2 500.0ms";
+export const SINGLE_ROW = "12:00:02.000 ● service-f operation-g 1 1.0ms";
+export const SLOW_NESTED_ROW = "12:00:04.000 ● service-a operation-a 4 300.0ms";
 
-export const CART_ROW = "12:00:00.000 ● frontend GET /api/cart 3 120.0ms";
-export const CHECKOUT_ROW = `12:00:01.000 ● checkout ${PLACE_ORDER} 3 2 500.0ms`;
-export const STATUS_ROW = "12:00:02.000 ● image-provider GET /status 1 1.0ms";
-
-export const NEWEST_FIRST = [STATUS_ROW, CHECKOUT_ROW, CART_ROW];
+export const NEWEST_FIRST = [SINGLE_ROW, FAILED_ROW, NESTED_ROW];
+export const WITH_SLOW_NESTED = [SLOW_NESTED_ROW, ...NEWEST_FIRST];
 
 export const otlpTraces = tracesRequest(
   {
-    service: "frontend",
-    attributes: { "host.name": "colima" },
-    scope: { name: "next.js", version: "0.0.1" },
+    service: "service-a",
+    attributes: { "resource.a": "value-a" },
+    scope: { name: "scope-a", version: "1.0.0" },
     spans: [
       {
-        traceId: cartTraceId,
-        spanId: "1a".repeat(8),
-        name: "GET /api/cart",
+        traceId: nestedTraceId,
+        spanId: nestedRootSpanId,
+        name: "operation-a",
         kind: SPAN_KIND.server,
         start: at(0),
         end: at(120),
-        attributes: { "http.route": "/api/cart" },
+        attributes: { "attribute.a": "value-a" },
       },
     ],
   },
   {
-    service: "image-provider",
+    service: "service-b",
     spans: [
       {
-        traceId: statusTraceId,
-        spanId: "3a".repeat(8),
-        name: "GET /status",
+        traceId: nestedTraceId,
+        spanId: nestedChildSpanId,
+        parentSpanId: nestedRootSpanId,
+        name: "operation-b",
+        kind: SPAN_KIND.server,
+        start: at(10),
+        end: at(90),
+        events: [
+          { name: "event-a", time: at(8) },
+          { name: "event-b", time: at(15), attributes: { "attribute.b": "value-b" } },
+          { name: "event-c" },
+        ],
+      },
+      {
+        traceId: nestedTraceId,
+        spanId: fakeSpanId("1c"),
+        parentSpanId: nestedChildSpanId,
+        name: "operation-c",
+        kind: SPAN_KIND.client,
+        start: at(20),
+        end: at(80),
+        attributes: { "db.system.name": "peer-a" },
+      },
+    ],
+  },
+  {
+    service: "service-c",
+    spans: [
+      {
+        traceId: failedTraceId,
+        spanId: failedRootSpanId,
+        name: "operation-d",
+        kind: SPAN_KIND.server,
+        start: at(1000),
+        end: at(1450),
+        status: { code: STATUS_CODE.error, message: ERROR_MESSAGE },
+        links: [
+          { traceId: nestedTraceId, spanId: nestedRootSpanId, attributes: { "attribute.c": 4 } },
+        ],
+      },
+    ],
+  },
+  {
+    service: "service-d",
+    spans: [
+      {
+        traceId: failedTraceId,
+        spanId: failedChildSpanId,
+        parentSpanId: failedRootSpanId,
+        name: "operation-e",
+        kind: SPAN_KIND.client,
+        start: at(1100),
+        end: at(1400),
+        status: { code: STATUS_CODE.error, message: ERROR_CAUSE },
+      },
+    ],
+  },
+  {
+    service: "service-e",
+    spans: [
+      {
+        traceId: failedTraceId,
+        spanId: fakeSpanId("2c"),
+        parentSpanId: missingParentId,
+        name: "operation-f",
+        kind: SPAN_KIND.consumer,
+        start: at(1460),
+        end: at(1500),
+      },
+    ],
+  },
+  {
+    service: "service-f",
+    spans: [
+      {
+        traceId: singleTraceId,
+        spanId: fakeSpanId("3a"),
+        name: "operation-g",
         start: at(2000),
         end: at(2001),
       },
     ],
   },
   {
-    service: "cart",
-    spans: [
-      {
-        traceId: cartTraceId,
-        spanId: "1b".repeat(8),
-        parentSpanId: "1a".repeat(8),
-        name: GET_CART,
-        kind: SPAN_KIND.server,
-        start: at(10),
-        end: at(90),
-        events: [
-          { name: "Enqueued", time: at(8) },
-          {
-            name: "feature_flag.evaluation",
-            time: at(15),
-            attributes: { "feature_flag.key": "cartFailure" },
-          },
-          { name: "Fetch cart" },
-        ],
-      },
-      {
-        traceId: cartTraceId,
-        spanId: "1c".repeat(8),
-        parentSpanId: "1b".repeat(8),
-        name: "valkey-cart:6379",
-        kind: SPAN_KIND.client,
-        start: at(20),
-        end: at(80),
-        attributes: { "db.system": "redis" },
-      },
-    ],
-  },
-  {
-    service: "checkout",
-    spans: [
-      {
-        traceId: checkoutTraceId,
-        spanId: placeOrderSpanId,
-        name: PLACE_ORDER,
-        kind: SPAN_KIND.server,
-        start: at(1000),
-        end: at(1450),
-        status: { code: STATUS_CODE.error, message: CHARGE_FAILED },
-        links: [
-          {
-            traceId: cartTraceId,
-            spanId: "1a".repeat(8),
-            attributes: { "demo.cart.items.count": 4 },
-          },
-        ],
-      },
-    ],
-  },
-  {
-    service: "payment",
-    spans: [
-      {
-        traceId: checkoutTraceId,
-        spanId: chargeSpanId,
-        parentSpanId: placeOrderSpanId,
-        name: "charge",
-        kind: SPAN_KIND.client,
-        start: at(1100),
-        end: at(1400),
-        status: { code: STATUS_CODE.error, message: CHARGE_DECLINED },
-      },
-    ],
-  },
-  {
-    service: "accounting",
+    service: "service-g",
     spans: [
       {
         traceId: rootlessTraceId,
-        spanId: "4b".repeat(8),
-        parentSpanId: "4a".repeat(8),
-        name: "order-consumed",
+        spanId: fakeSpanId("4b"),
+        parentSpanId: fakeSpanId("4a"),
+        name: "operation-h",
         start: at(3000),
         end: at(3100),
-      },
-    ],
-  },
-  {
-    service: "fraud-detection",
-    spans: [
-      {
-        traceId: checkoutTraceId,
-        spanId: "2c".repeat(8),
-        parentSpanId: missingParentId,
-        name: "orders process",
-        kind: SPAN_KIND.consumer,
-        start: at(1460),
-        end: at(1500),
       },
     ],
   },
@@ -167,18 +161,14 @@ export async function openTrace(receiver: TestReceiver, row: string, options?: A
   return app;
 }
 
-export const slowCartTraceId = "6".repeat(32);
-
-export const SLOW_CART_ROW = "12:00:04.000 ● frontend GET /api/cart 4 300.0ms";
-
-export const slowCartTraces = tracesRequest(
+export const slowNestedTraces = tracesRequest(
   {
-    service: "frontend",
+    service: "service-a",
     spans: [
       {
-        traceId: slowCartTraceId,
-        spanId: "6a".repeat(8),
-        name: "GET /api/cart",
+        traceId: slowNestedTraceId,
+        spanId: fakeSpanId("6a"),
+        name: "operation-a",
         kind: SPAN_KIND.server,
         start: at(4000),
         end: at(4300),
@@ -186,31 +176,31 @@ export const slowCartTraces = tracesRequest(
     ],
   },
   {
-    service: "cart",
+    service: "service-b",
     spans: [
       {
-        traceId: slowCartTraceId,
-        spanId: "6b".repeat(8),
-        parentSpanId: "6a".repeat(8),
-        name: GET_CART,
+        traceId: slowNestedTraceId,
+        spanId: fakeSpanId("6b"),
+        parentSpanId: fakeSpanId("6a"),
+        name: "operation-b",
         kind: SPAN_KIND.server,
         start: at(4010),
         end: at(4250),
       },
       {
-        traceId: slowCartTraceId,
-        spanId: "6c".repeat(8),
-        parentSpanId: "6b".repeat(8),
-        name: "valkey-cart:6379",
+        traceId: slowNestedTraceId,
+        spanId: fakeSpanId("6c"),
+        parentSpanId: fakeSpanId("6b"),
+        name: "operation-c",
         kind: SPAN_KIND.client,
         start: at(4020),
         end: at(4080),
       },
       {
-        traceId: slowCartTraceId,
-        spanId: "6d".repeat(8),
-        parentSpanId: "6b".repeat(8),
-        name: "valkey-cart:6379",
+        traceId: slowNestedTraceId,
+        spanId: fakeSpanId("6d"),
+        parentSpanId: fakeSpanId("6b"),
+        name: "operation-c",
         kind: SPAN_KIND.client,
         start: at(4100),
         end: at(4240),
@@ -219,20 +209,15 @@ export const slowCartTraces = tracesRequest(
   },
 );
 
-export const WITH_SLOW_CART = [SLOW_CART_ROW, ...NEWEST_FIRST];
-
-export async function renderCartComparison(receiver: TestReceiver, options?: AppOptions) {
+export async function renderComparison(receiver: TestReceiver, options?: AppOptions) {
   await receiver.sendHttp("/v1/traces", otlpTraces);
-  await receiver.sendHttp("/v1/traces", slowCartTraces);
+  await receiver.sendHttp("/v1/traces", slowNestedTraces);
   const app = await renderPage(receiver, "traces", options);
-  await app.waitForRows(WITH_SLOW_CART);
-  await app.selectRow(CART_ROW);
+  await app.waitForRows(WITH_SLOW_NESTED);
+  await app.selectRow(NESTED_ROW);
   app.mockInput.pressKey("m");
-  await app.waitForFrame((frame) => pageHeader(frame).includes("vs GET /api/cart 120.0ms"));
-  for (const row of WITH_SLOW_CART.slice(0, WITH_SLOW_CART.indexOf(CART_ROW)).toReversed()) {
-    app.mockInput.pressArrow("up");
-    await app.waitForSelection(row);
-  }
+  await app.waitForFrame((frame) => pageHeader(frame).includes("vs operation-a 120.0ms"));
+  await app.selectRow(SLOW_NESTED_ROW);
   app.mockInput.pressKey("v");
   await app.waitForFrame((frame) => spanDiffRows(frame).length > 0);
   return app;

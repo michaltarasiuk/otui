@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 
 import { TIME_BUCKET_MS } from "#telemetry/time-buckets.ts";
+import { NOON_MS } from "#testing/clock.ts";
+import { SECOND_MS } from "#utils/time.ts";
 
 import type { HistogramColumn } from "./bars.ts";
 import {
@@ -10,10 +12,6 @@ import {
   timeColumns,
   timeRangeLabel,
 } from "./time-columns.ts";
-
-const SECOND = 1000;
-
-const noon = Date.parse("2026-10-28T12:00:00.000Z");
 
 function column(startMs: number, count = 0, errorCount = 0) {
   return {
@@ -34,57 +32,57 @@ test("buckets the timeline in fixed slices and says so", () => {
 });
 
 test("ends the columns at the newest bucket and fills the gaps", () => {
-  const occupied = [column(noon, 2, 1), column(noon + 20 * SECOND, 3)];
+  const occupied = [column(NOON_MS, 2, 1), column(NOON_MS + 20 * SECOND_MS, 3)];
 
-  const columns = timeColumns(occupied, noon + 30 * SECOND, 5, undefined);
+  const columns = timeColumns(occupied, NOON_MS + 30 * SECOND_MS, 5, undefined);
 
   expect(columns).toEqual([
-    column(noon - 10 * SECOND),
-    column(noon, 2, 1),
-    column(noon + 10 * SECOND),
-    column(noon + 20 * SECOND, 3),
-    column(noon + 30 * SECOND),
+    column(NOON_MS - 10 * SECOND_MS),
+    column(NOON_MS, 2, 1),
+    column(NOON_MS + 10 * SECOND_MS),
+    column(NOON_MS + 20 * SECOND_MS, 3),
+    column(NOON_MS + 30 * SECOND_MS),
   ]);
 });
 
 test("leaves out buckets before the first column", () => {
-  const occupied = [column(noon - 60 * SECOND, 4), column(noon + 30 * SECOND, 1)];
+  const occupied = [column(NOON_MS - 60 * SECOND_MS, 4), column(NOON_MS + 30 * SECOND_MS, 1)];
 
-  const columns = timeColumns(occupied, noon + 30 * SECOND, 3, undefined);
+  const columns = timeColumns(occupied, NOON_MS + 30 * SECOND_MS, 3, undefined);
 
   expect(columns.map(({ count }) => count)).toEqual([0, 0, 1]);
 });
 
 test("centers the columns on the selected bucket, up to the newest bucket", () => {
-  const occupied = [column(noon - 600 * SECOND, 1), column(noon, 1)];
-  const newestBucketMs = noon + 30 * SECOND;
+  const occupied = [column(NOON_MS - 600 * SECOND_MS, 1), column(NOON_MS, 1)];
+  const newestBucketMs = NOON_MS + 30 * SECOND_MS;
   const select = (from: number) => ({ from, to: from + TIME_BUCKET_MS });
 
-  const older = timeColumns(occupied, newestBucketMs, 5, select(noon - 600 * SECOND));
+  const older = timeColumns(occupied, newestBucketMs, 5, select(NOON_MS - 600 * SECOND_MS));
   const newest = timeColumns(occupied, newestBucketMs, 5, select(newestBucketMs));
 
   expect(older.map(({ from }) => from)).toEqual(
-    [-620, -610, -600, -590, -580].map((seconds) => noon + seconds * SECOND),
+    [-620, -610, -600, -590, -580].map((seconds) => NOON_MS + seconds * SECOND_MS),
   );
   expect(newest.at(-1)?.from).toBe(newestBucketMs);
 });
 
 test("has no columns when there is no room for one", () => {
-  expect(timeColumns([column(noon, 1)], noon, 0, undefined)).toEqual([]);
+  expect(timeColumns([column(NOON_MS, 1)], NOON_MS, 0, undefined)).toEqual([]);
 });
 
 test("reports traces before and after the columns", () => {
-  const columns = emptyColumns(noon, 3);
+  const columns = emptyColumns(NOON_MS, 3);
 
-  expect(hiddenColumns([column(noon - 10 * SECOND, 1)], columns)).toEqual({
+  expect(hiddenColumns([column(NOON_MS - 10 * SECOND_MS, 1)], columns)).toEqual({
     earlier: true,
     later: false,
   });
-  expect(hiddenColumns([column(noon + 30 * SECOND, 1)], columns)).toEqual({
+  expect(hiddenColumns([column(NOON_MS + 30 * SECOND_MS, 1)], columns)).toEqual({
     earlier: false,
     later: true,
   });
-  expect(hiddenColumns([column(noon + 10 * SECOND, 1)], columns)).toEqual({
+  expect(hiddenColumns([column(NOON_MS + 10 * SECOND_MS, 1)], columns)).toEqual({
     earlier: false,
     later: false,
   });
@@ -92,12 +90,12 @@ test("reports traces before and after the columns", () => {
 });
 
 test("labels a range with the times it starts and ends, to the second under a minute", () => {
-  expect(timeRangeLabel({ from: noon, to: noon + 10_000 })).toBe("12:00:00–12:00:10");
-  expect(timeRangeLabel({ from: noon, to: noon + 5 * 60 * 1000 })).toBe("12:00–12:05");
+  expect(timeRangeLabel({ from: NOON_MS, to: NOON_MS + 10_000 })).toBe("12:00:00–12:00:10");
+  expect(timeRangeLabel({ from: NOON_MS, to: NOON_MS + 5 * 60 * 1000 })).toBe("12:00–12:05");
 });
 
 test("labels the axis to the minute at round times, far enough apart to read", () => {
-  const columns = emptyColumns(noon - 30 * SECOND, 20);
+  const columns = emptyColumns(NOON_MS - 30 * SECOND_MS, 20);
 
   expect(timeAxis(columns, 2)).toBe(
     `${" ".repeat(6)}12:00${" ".repeat(7)}12:01${" ".repeat(7)}12:02`,
@@ -105,7 +103,7 @@ test("labels the axis to the minute at round times, far enough apart to read", (
 });
 
 test("widens the tick interval when the columns are narrower", () => {
-  const columns = emptyColumns(noon - 30 * SECOND, 60);
+  const columns = emptyColumns(NOON_MS - 30 * SECOND_MS, 60);
 
   expect(timeAxis(columns, 1).trim().split(/\s+/)).toEqual([
     "12:00",
@@ -117,7 +115,7 @@ test("widens the tick interval when the columns are narrower", () => {
 });
 
 test("skips a tick whose label would run past the last column", () => {
-  const columns = emptyColumns(noon - 20 * SECOND, 4);
+  const columns = emptyColumns(NOON_MS - 20 * SECOND_MS, 4);
 
   expect(timeAxis(columns, 2)).toBe("");
 });

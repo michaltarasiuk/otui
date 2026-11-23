@@ -6,18 +6,11 @@ import logList from "#logs/sql/log-list.sql" with { type: "text" };
 import metricList from "#metrics/sql/metric-list.sql" with { type: "text" };
 import serviceList from "#services/sql/service-list.sql" with { type: "text" };
 import { renderApp } from "#testing/app.tsx";
+import { at } from "#testing/clock.ts";
 import { otlpLogs } from "#testing/logs.ts";
-import { logsRequest, STATUS_CODE, tracesRequest } from "#testing/otlp.ts";
+import { fakeSpanId, fakeTraceId, logsRequest, STATUS_CODE, tracesRequest } from "#testing/otlp.ts";
 import { startTestReceiver } from "#testing/receiver.ts";
-import {
-  chartLines,
-  keyHints,
-  onDetails,
-  onList,
-  pageHeader,
-  tableRows,
-  tabStyles,
-} from "#testing/screen.ts";
+import { chartLines, keyHints, onDetails, onList, tableRows, tabStyles } from "#testing/screen.ts";
 import { otlpTraces } from "#testing/traces.ts";
 import traceList from "#traces/sql/trace-list.sql" with { type: "text" };
 
@@ -46,21 +39,21 @@ test("hints the view's described keys, the selected row's actions first", async 
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
+      service: "service-a",
       spans: [
         {
-          traceId: "1".repeat(32),
-          spanId: "1".repeat(16),
-          name: "oteldemo.CheckoutService/PlaceOrder",
-          start: new Date(0),
-          end: new Date(10),
+          traceId: fakeTraceId("1"),
+          spanId: fakeSpanId("1"),
+          name: "operation-a",
+          start: at(0),
+          end: at(10),
         },
       ],
     }),
   );
   await using app = await renderApp(receiver, { size: { width: 160, height: 10 } });
   await app.openTab("traces");
-  await app.waitForText("oteldemo.CheckoutService/PlaceOrder");
+  await app.waitForText("operation-a");
 
   app.mockInput.pressTab();
   const frame = await app.waitForFrame(onList);
@@ -75,14 +68,14 @@ test("hints the jump to the next error only when a trace has errors", async () =
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
+      service: "service-a",
       spans: [
         {
-          traceId: "1".repeat(32),
-          spanId: "1".repeat(16),
-          name: "oteldemo.CheckoutService/PlaceOrder",
-          start: new Date(0),
-          end: new Date(10),
+          traceId: fakeTraceId("1"),
+          spanId: fakeSpanId("1"),
+          name: "operation-a",
+          start: at(0),
+          end: at(10),
           status: { code: STATUS_CODE.error },
         },
       ],
@@ -90,7 +83,7 @@ test("hints the jump to the next error only when a trace has errors", async () =
   );
   await using app = await renderApp(receiver, { size: { width: 160, height: 10 } });
   await app.openTab("traces");
-  await app.waitForText("oteldemo.CheckoutService/PlaceOrder");
+  await app.waitForText("operation-a");
 
   app.mockInput.pressTab();
   const frame = await app.waitForFrame(onList);
@@ -100,37 +93,25 @@ test("hints the jump to the next error only when a trace has errors", async () =
 
 test("follows to the traces tab when a log opens its trace", async () => {
   await using receiver = await startTestReceiver();
-  const traceId = "2".repeat(32);
-  const spanId = "2a".repeat(8);
+  const traceId = fakeTraceId("2");
+  const spanId = fakeSpanId("2a");
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
-      spans: [
-        {
-          traceId,
-          spanId,
-          name: "oteldemo.CheckoutService/PlaceOrder",
-          start: new Date(0),
-          end: new Date(10),
-        },
-      ],
+      service: "service-a",
+      spans: [{ traceId, spanId, name: "operation-a", start: at(0), end: at(10) }],
     }),
   );
   await receiver.sendHttp(
     "/v1/logs",
     logsRequest({
-      service: "checkout",
-      logs: [{ time: new Date(5), body: "[PlaceOrder]", traceId, spanId }],
+      service: "service-a",
+      logs: [{ time: at(5), body: "message-a", traceId, spanId }],
     }),
   );
   await using app = await renderApp(receiver);
-  await app.openTab("traces");
-  await app.waitForText("oteldemo.CheckoutService/PlaceOrder");
-  app.mockInput.pressArrow("right");
-  await app.waitForText("Waiting for metrics...");
-  app.mockInput.pressArrow("right");
-  await app.waitForText("[PlaceOrder]");
+  await app.openTab("logs");
+  await app.waitForText("message-a");
   app.mockInput.pressTab();
   await app.waitForText("return open trace");
 
@@ -147,36 +128,23 @@ test("follows to the traces tab when a log opens its trace", async () => {
 
 test("forgets where a trace was opened from after switching tabs", async () => {
   await using receiver = await startTestReceiver();
-  const traceId = "2".repeat(32);
+  const traceId = fakeTraceId("2");
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
+      service: "service-a",
       spans: [
-        {
-          traceId,
-          spanId: "2a".repeat(8),
-          name: "oteldemo.CheckoutService/PlaceOrder",
-          start: new Date(0),
-          end: new Date(10),
-        },
+        { traceId, spanId: fakeSpanId("2a"), name: "operation-a", start: at(0), end: at(10) },
       ],
     }),
   );
   await receiver.sendHttp(
     "/v1/logs",
-    logsRequest({
-      service: "checkout",
-      logs: [{ time: new Date(5), body: "[PlaceOrder]", traceId }],
-    }),
+    logsRequest({ service: "service-a", logs: [{ time: at(5), body: "message-a", traceId }] }),
   );
   await using app = await renderApp(receiver);
-  await app.openTab("traces");
-  await app.waitForText("oteldemo.CheckoutService/PlaceOrder");
-  app.mockInput.pressArrow("right");
-  await app.waitForText("Waiting for metrics...");
-  app.mockInput.pressArrow("right");
-  await app.waitForText("[PlaceOrder]");
+  await app.openTab("logs");
+  await app.waitForText("message-a");
   app.mockInput.pressTab();
   await app.waitForText("return open trace");
   app.mockInput.pressEnter();
@@ -203,14 +171,14 @@ test("clears the telemetry with ctrl+l and starts the current tab over", async (
   await receiver.sendHttp(
     "/v1/traces",
     tracesRequest({
-      service: "checkout",
+      service: "service-a",
       spans: [
         {
-          traceId: "3".repeat(32),
-          spanId: "3a".repeat(8),
-          name: "oteldemo.CheckoutService/PlaceOrder",
-          start: new Date(0),
-          end: new Date(10),
+          traceId: fakeTraceId("3"),
+          spanId: fakeSpanId("3a"),
+          name: "operation-a",
+          start: at(0),
+          end: at(10),
         },
       ],
     }),
@@ -218,7 +186,7 @@ test("clears the telemetry with ctrl+l and starts the current tab over", async (
   await using app = await renderApp(receiver);
   await app.openTab("traces");
   app.mockInput.pressTab();
-  await app.waitForText("oteldemo.CheckoutService/PlaceOrder");
+  await app.waitForText("operation-a");
   app.mockInput.pressEnter();
   await app.waitForText("1 span");
 
@@ -235,17 +203,17 @@ test("draws a tab whole on the frame it first shows", async () => {
   await receiver.sendHttp("/v1/traces", otlpTraces);
   await receiver.sendHttp("/v1/logs", otlpLogs);
   await using app = await renderApp(receiver);
-  await app.waitForFrame((frame) => pageHeader(frame).endsWith(" services"));
+  await app.waitForPage("services");
 
   app.mockInput.pressArrow("right");
-  const traces = await app.waitForFrame((frame) => pageHeader(frame).endsWith(" traces"));
+  const traces = await app.waitForPage("traces");
   expect(chartLines(traces)).not.toEqual([]);
   expect(tableRows(traces)).toHaveLength(3);
 
   app.mockInput.pressArrow("right");
-  await app.waitForFrame((frame) => / metrics?$/.test(pageHeader(frame)));
+  await app.waitForPage("metrics");
   app.mockInput.pressArrow("right");
-  const logs = await app.waitForFrame((frame) => pageHeader(frame).endsWith(" logs"));
+  const logs = await app.waitForPage("logs");
   expect(chartLines(logs)).not.toEqual([]);
   expect(tableRows(logs)).not.toEqual([]);
 });

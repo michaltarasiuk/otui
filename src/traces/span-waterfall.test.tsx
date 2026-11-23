@@ -14,14 +14,13 @@ import {
   textLines,
 } from "#testing/screen.ts";
 import {
-  CART_ROW,
-  CHARGE_FAILED,
-  CHECKOUT_ROW,
-  checkoutTraceId,
+  NESTED_ROW,
+  ERROR_MESSAGE,
+  FAILED_ROW,
+  failedTraceId,
   missingParentId,
   openTrace,
-  PLACE_ORDER,
-  STATUS_ROW,
+  SINGLE_ROW,
 } from "#testing/traces.ts";
 import { serviceColor, THEME } from "#ui/theme.ts";
 import { collapseWhitespace } from "#utils/text.ts";
@@ -48,42 +47,42 @@ function barExtent({ lines }: CapturedFrame, name: string, color: string) {
 
 test("opens a trace as a span waterfall", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CHECKOUT_ROW);
+  await using app = await openTrace(receiver, FAILED_ROW);
 
   const frame = await app.waitForFrame((frame) => spanRows(frame).length === 3);
 
   expect(listLines(frame).slice(0, 3)).toEqual([
-    `${PLACE_ORDER} ${checkoutTraceId}`,
-    "● checkout 12:00:01.000 3 spans 2 errors 500.0ms",
+    `operation-d ${failedTraceId}`,
+    "● service-c 12:00:01.000 3 spans 2 errors 500.0ms",
     "Service Name Duration 0 500.0ms",
   ]);
   expect(spanRows(frame).map((row) => collapseWhitespace(row))).toEqual([
-    `● checkout ${PLACE_ORDER} 450.0ms`,
-    "● payment charge 300.0ms",
-    "● fraud-detection orders process 40.0ms",
+    `● service-c operation-d 450.0ms`,
+    "● service-d operation-e 300.0ms",
+    "● service-e operation-f 40.0ms",
   ]);
 });
 
 test("indents each span under its parent", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CART_ROW);
+  await using app = await openTrace(receiver, NESTED_ROW);
 
-  const [root, child, grandchild] = spanRows(await app.waitForText("valkey-cart:6379"));
-  const nameColumn = root?.indexOf("GET /api/cart") ?? -1;
+  const [root, child, grandchild] = spanRows(await app.waitForText("operation-c"));
+  const nameColumn = root?.indexOf("operation-a") ?? -1;
 
-  expect(child?.indexOf("POST /oteldemo")).toBe(nameColumn + 2);
-  expect(grandchild?.indexOf("valkey-cart:6379")).toBe(nameColumn + 4);
+  expect(child?.indexOf("operation-b")).toBe(nameColumn + 2);
+  expect(grandchild?.indexOf("operation-c")).toBe(nameColumn + 4);
 });
 
 test("draws each span's bar inside its parent's bar", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CART_ROW);
-  await app.waitForText("valkey-cart:6379");
+  await using app = await openTrace(receiver, NESTED_ROW);
+  await app.waitForText("operation-c");
 
   const frame = await app.captureSpans();
-  const root = barExtent(frame, "GET /api/cart", serviceColor("frontend"));
-  const child = barExtent(frame, "POST /oteldemo", serviceColor("cart"));
-  const grandchild = barExtent(frame, "valkey-cart:6379", serviceColor("cart"));
+  const root = barExtent(frame, "operation-a", serviceColor("service-a"));
+  const child = barExtent(frame, "operation-b", serviceColor("service-b"));
+  const grandchild = barExtent(frame, "operation-c", serviceColor("service-b"));
 
   expect(root.start).toBeLessThan(child.start);
   expect(child.start).toBeLessThan(grandchild.start);
@@ -93,47 +92,47 @@ test("draws each span's bar inside its parent's bar", async () => {
 
 test("points out a span whose parent never arrived", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CHECKOUT_ROW);
-  await app.waitForFrame((frame) => detailsLines(frame).includes(CHARGE_FAILED));
+  await using app = await openTrace(receiver, FAILED_ROW);
+  await app.waitForFrame((frame) => detailsLines(frame).includes(ERROR_MESSAGE));
 
   app.mockInput.pressKey("END");
   const frame = await app.waitForText("not received");
 
   expect(textLines(frame)).toContain(
-    `● fraud-detection consumer 12:00:01.460 +460.0ms 40.0ms parent ${missingParentId} not received`,
+    `● service-e consumer 12:00:01.460 +460.0ms 40.0ms parent ${missingParentId} not received`,
   );
 });
 
 test("opens a trace whose spans have no kind", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, STATUS_ROW);
+  await using app = await openTrace(receiver, SINGLE_ROW);
 
   const frame = await app.waitForText("unspecified");
 
-  expect(textLines(frame)).toContain("● image-provider unspecified 12:00:02.000 +0µs 1.0ms");
+  expect(textLines(frame)).toContain("● service-f unspecified 12:00:02.000 +0µs 1.0ms");
 });
 
 test("colors the names of spans with errors", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CHECKOUT_ROW);
-  await app.waitForText("orders process");
+  await using app = await openTrace(receiver, FAILED_ROW);
+  await app.waitForText("operation-f");
 
   const frame = await app.captureSpans();
 
-  expect(spanColors(lineSpans(frame, "charge"), "charge").fg).toEqual(color(THEME.textError));
-  expect(spanColors(lineSpans(frame, "orders process"), "orders process").fg).toEqual(
-    color(THEME.text),
+  expect(spanColors(lineSpans(frame, "operation-e"), "operation-e").fg).toEqual(
+    color(THEME.textError),
   );
+  expect(spanColors(lineSpans(frame, "operation-f"), "operation-f").fg).toEqual(color(THEME.text));
 });
 
 test("folds and unfolds the selected span's children", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CART_ROW);
+  await using app = await openTrace(receiver, NESTED_ROW);
   await app.waitForFrame((frame) => spanRows(frame).length === 3);
 
   app.mockInput.pressKey(" ");
   let frame = await app.waitForFrame((frame) => spanRows(frame).length === 1);
-  expect(collapseWhitespace(spanRows(frame)[0] ?? "")).toBe("● frontend GET /api/cart +2 120.0ms");
+  expect(collapseWhitespace(spanRows(frame)[0] ?? "")).toBe("● service-a operation-a +2 120.0ms");
   expect(keyHints(frame)).toContain("space unfold");
 
   app.mockInput.pressKey(" ");
@@ -143,15 +142,17 @@ test("folds and unfolds the selected span's children", async () => {
 
 test("dims the spans off the critical path", async () => {
   await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, CHECKOUT_ROW);
-  await app.waitForText("orders process");
+  await using app = await openTrace(receiver, FAILED_ROW);
+  await app.waitForText("operation-f");
 
   app.mockInput.pressKey("c");
   await app.waitForFrame((frame) => keyHints(frame).includes("c all spans"));
 
   const frame = await app.captureSpans();
-  expect(spanColors(lineSpans(frame, "charge"), "charge").fg).toEqual(color(THEME.textError));
-  expect(spanColors(lineSpans(frame, "orders process"), "orders process").fg).toEqual(
+  expect(spanColors(lineSpans(frame, "operation-e"), "operation-e").fg).toEqual(
+    color(THEME.textError),
+  );
+  expect(spanColors(lineSpans(frame, "operation-f"), "operation-f").fg).toEqual(
     color(THEME.textMuted),
   );
 });

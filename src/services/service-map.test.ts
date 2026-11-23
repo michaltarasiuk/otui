@@ -26,21 +26,21 @@ function outline(calls: Call[]) {
 
 test("starts from the services nobody calls and nests each call under its caller", () => {
   const calls = [
-    call("cart", "redis", true),
-    call("checkout", "cart"),
-    call("checkout", "payment"),
-    call("frontend", "cart"),
-    call("frontend", "checkout"),
+    call("service-b", "peer-a", true),
+    call("service-c", "service-b"),
+    call("service-c", "service-d"),
+    call("service-a", "service-b"),
+    call("service-a", "service-c"),
   ];
 
   expect(outline(calls)).toEqual([
-    "frontend",
-    "  cart",
-    "    redis",
-    "  checkout",
-    "    cart",
-    "      redis",
-    "    payment",
+    "service-a",
+    "  service-b",
+    "    peer-a",
+    "  service-c",
+    "    service-b",
+    "      peer-a",
+    "    service-d",
   ]);
 });
 
@@ -51,9 +51,9 @@ test("stops at a call back into the path and still shows services only reached b
 });
 
 test("does not treat an external peer named like a service as a call into it", () => {
-  const calls = [call("api", "auth", true), call("auth", "postgres", true)];
+  const calls = [call("service-a", "service-b", true), call("service-b", "peer-a", true)];
 
-  expect(outline(calls)).toEqual(["api", "  auth", "auth", "  postgres"]);
+  expect(outline(calls)).toEqual(["service-a", "  service-b", "service-b", "  peer-a"]);
 });
 
 test("gives each node a unique id even when a service shows up twice", () => {

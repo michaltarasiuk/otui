@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { substringPattern } from "./substring-pattern.ts";
 
 test("matches the search anywhere in the text", () => {
-  expect(substringPattern("cart")).toBe("%cart%");
+  expect(substringPattern("value-a")).toBe("%value-a%");
 });
 
 test("matches everything for an empty search", () => {
@@ -12,6 +12,6 @@ test("matches everything for an empty search", () => {
 
 test("escapes like wildcards and the escape character", () => {
   expect(substringPattern("100%")).toBe("%100\\%%");
-  expect(substringPattern("get_product_list")).toBe("%get\\_product\\_list%");
+  expect(substringPattern("value_a")).toBe("%value\\_a%");
   expect(substringPattern("C:\\temp")).toBe("%C:\\\\temp%");
 });

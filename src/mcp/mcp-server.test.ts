@@ -5,15 +5,15 @@ import { startTestMcp } from "#testing/mcp.ts";
 import { logsRequest, metricsRequest, SEVERITY_NUMBER, TEMPORALITY } from "#testing/otlp.ts";
 import { startTestReceiver } from "#testing/receiver.ts";
 import {
-  cartTraceId,
-  CHARGE_FAILED,
-  checkoutTraceId,
+  nestedRootSpanId,
+  nestedTraceId,
+  ERROR_MESSAGE,
+  failedTraceId,
   otlpTraces,
-  GET_CART,
-  PLACE_ORDER,
-  slowCartTraceId,
-  slowCartTraces,
-  statusTraceId,
+  failedRootSpanId,
+  slowNestedTraceId,
+  slowNestedTraces,
+  singleTraceId,
 } from "#testing/traces.ts";
 import { StartupError } from "#utils/startup-error.ts";
 
@@ -46,12 +46,12 @@ test("lists traces with the same search as the app", async () => {
   await using mcp = await startTestMcp(receiver);
 
   expect(await mcp.callJson("list_traces")).toEqual([
-    expect.objectContaining({ trace_id: statusTraceId }),
-    expect.objectContaining({ trace_id: checkoutTraceId }),
-    expect.objectContaining({ trace_id: cartTraceId }),
+    expect.objectContaining({ trace_id: singleTraceId }),
+    expect.objectContaining({ trace_id: failedTraceId }),
+    expect.objectContaining({ trace_id: nestedTraceId }),
   ]);
   expect(await mcp.callJson("list_traces", { search: "duration>200ms" })).toEqual([
-    expect.objectContaining({ trace_id: checkoutTraceId, error_count: 2 }),
+    expect.objectContaining({ trace_id: failedTraceId, error_count: 2 }),
   ]);
 });
 
@@ -60,40 +60,42 @@ test("outlines a trace's spans with the critical path and errors", async () => {
   await receiver.sendHttp("/v1/traces", otlpTraces);
   await using mcp = await startTestMcp(receiver);
 
-  const outline = await mcp.callText("get_trace", { trace_id: checkoutTraceId });
+  const outline = await mcp.callText("get_trace", { trace_id: failedTraceId });
 
   const lines = outline.split("\n");
-  expect(lines[0]).toBe(`trace ${checkoutTraceId}: 3 spans, 500.0ms, 2 with errors`);
+  expect(lines[0]).toBe(`trace ${failedTraceId}: 3 spans, 500.0ms, 2 with errors`);
   expect(lines).toContain(
-    `* ${PLACE_ORDER} [checkout, server] 450.0ms at +0µs ${"2a".repeat(8)} ERROR: ${CHARGE_FAILED}`,
+    `* operation-d [service-c, server] 450.0ms at +0µs ${failedRootSpanId} ERROR: ${ERROR_MESSAGE}`,
   );
-  expect(lines.some((line) => line.startsWith("*   charge [payment, client] 300.0ms"))).toBe(true);
+  expect(lines.some((line) => line.startsWith("*   operation-e [service-d, client] 300.0ms"))).toBe(
+    true,
+  );
 });
 
 test("compares two traces by self time", async () => {
   await using receiver = await startTestReceiver();
   await receiver.sendHttp("/v1/traces", otlpTraces);
-  await receiver.sendHttp("/v1/traces", slowCartTraces);
+  await receiver.sendHttp("/v1/traces", slowNestedTraces);
   await using mcp = await startTestMcp(receiver);
 
   const comparison = await mcp.callJson("compare_traces", {
-    before_trace_id: cartTraceId,
-    after_trace_id: slowCartTraceId,
+    before_trace_id: nestedTraceId,
+    after_trace_id: slowNestedTraceId,
   });
 
   expect(comparison).toMatchObject({
-    before: { trace_id: cartTraceId, duration_ms: 120, span_count: 3, error_count: 0 },
-    after: { trace_id: slowCartTraceId, duration_ms: 300, span_count: 4, error_count: 0 },
+    before: { trace_id: nestedTraceId, duration_ms: 120, span_count: 3, error_count: 0 },
+    after: { trace_id: slowNestedTraceId, duration_ms: 300, span_count: 4, error_count: 0 },
     changed_spans: [
-      { name: "GET /api/cart", change: "changed", self_delta_ms: 20 },
-      { name: GET_CART, change: "changed", self_delta_ms: 20 },
-      { name: "valkey-cart:6379", change: "added", before_span_id: null, self_delta_ms: 140 },
+      { name: "operation-a", change: "changed", self_delta_ms: 20 },
+      { name: "operation-b", change: "changed", self_delta_ms: 20 },
+      { name: "operation-c", change: "added", before_span_id: null, self_delta_ms: 140 },
     ],
     changed_spans_left_out: 0,
     operations: [
-      { name: "valkey-cart:6379", before_count: 1, after_count: 2, after_self_ms: 200 },
-      { name: "GET /api/cart" },
-      { name: GET_CART },
+      { name: "operation-c", before_count: 1, after_count: 2, after_self_ms: 200 },
+      { name: "operation-a" },
+      { name: "operation-b" },
     ],
   });
 });
@@ -104,8 +106,8 @@ test("refuses to compare traces with different root spans", async () => {
   await using mcp = await startTestMcp(receiver);
 
   const text = await mcp.callText("compare_traces", {
-    before_trace_id: cartTraceId,
-    after_trace_id: checkoutTraceId,
+    before_trace_id: nestedTraceId,
+    after_trace_id: failedTraceId,
   });
 
   expect(text).toBe("The traces start with different root spans, so they don't compare");
@@ -116,11 +118,14 @@ test("reads a span's attributes and resource", async () => {
   await receiver.sendHttp("/v1/traces", otlpTraces);
   await using mcp = await startTestMcp(receiver);
 
-  const span = await mcp.callJson("get_span", { trace_id: cartTraceId, span_id: "1a".repeat(8) });
+  const span = await mcp.callJson("get_span", {
+    trace_id: nestedTraceId,
+    span_id: nestedRootSpanId,
+  });
 
   expect(span).toMatchObject({
-    attributes: { "http.route": "/api/cart" },
-    resource: { "service.name": "frontend", "host.name": "colima" },
+    attributes: { "attribute.a": "value-a" },
+    resource: { "service.name": "service-a", "resource.a": "value-a" },
   });
 });
 
@@ -131,10 +136,10 @@ test("lists services and their operations", async () => {
   await using mcp = await startTestMcp(receiver);
 
   const services = await mcp.callJson("list_services");
-  const operations = await mcp.callJson("list_operations", { service: "checkout" });
+  const operations = await mcp.callJson("list_operations", { service: "service-c" });
 
-  expect(services).toContainEqual(expect.objectContaining({ service_name: "checkout" }));
-  expect(operations).toEqual([expect.objectContaining({ name: PLACE_ORDER, error_ratio: 1 })]);
+  expect(services).toContainEqual(expect.objectContaining({ service_name: "service-c" }));
+  expect(operations).toEqual([expect.objectContaining({ name: "operation-d", error_ratio: 1 })]);
 });
 
 test("maps calls between services and to external peers", async () => {
@@ -146,9 +151,9 @@ test("maps calls between services and to external peers", async () => {
   const calls = await mcp.callJson("get_service_map");
 
   expect(calls).toEqual([
-    expect.objectContaining({ caller: "cart", callee: "redis", is_external: true }),
-    expect.objectContaining({ caller: "checkout", callee: "payment", error_ratio: 1 }),
-    expect.objectContaining({ caller: "frontend", callee: "cart", is_external: false }),
+    expect.objectContaining({ caller: "service-a", callee: "service-b", is_external: false }),
+    expect.objectContaining({ caller: "service-b", callee: "peer-a", is_external: true }),
+    expect.objectContaining({ caller: "service-c", callee: "service-d", error_ratio: 1 }),
   ]);
 });
 
@@ -157,10 +162,10 @@ test("lists logs at or above a severity", async () => {
   await receiver.sendHttp(
     "/v1/logs",
     logsRequest({
-      service: "cart",
+      service: "service-a",
       logs: [
-        { time: new Date(), body: "cart loaded", severityNumber: SEVERITY_NUMBER.info },
-        { time: new Date(), body: "cart failed", severityNumber: SEVERITY_NUMBER.error },
+        { time: new Date(), body: "message-a", severityNumber: SEVERITY_NUMBER.info },
+        { time: new Date(), body: "message-b", severityNumber: SEVERITY_NUMBER.error },
       ],
     }),
   );
@@ -169,7 +174,7 @@ test("lists logs at or above a severity", async () => {
   const logs = await mcp.callJson("list_logs", { min_severity: "WARN" });
 
   expect(logs).toEqual([
-    expect.objectContaining({ severity: "ERROR", service: "cart", body: "cart failed" }),
+    expect.objectContaining({ severity: "ERROR", service: "service-a", body: "message-b" }),
   ]);
 });
 
@@ -178,10 +183,10 @@ test("reads a metric's series", async () => {
   await receiver.sendHttp(
     "/v1/metrics",
     metricsRequest({
-      service: "frontend",
+      service: "service-a",
       metrics: [
         {
-          name: "v8js.memory.heap.used",
+          name: "metric.a",
           gauge: [
             { time: new Date(Date.now() - 1000), value: 4 },
             { time: new Date(), value: 6 },
@@ -192,13 +197,13 @@ test("reads a metric's series", async () => {
   );
   await using mcp = await startTestMcp(receiver);
 
-  const metrics = await mcp.callJson("get_metric", { name: "v8js.memory.heap.used" });
+  const metrics = await mcp.callJson("get_metric", { name: "metric.a" });
 
   expect(metrics).toEqual([
     expect.objectContaining({
-      name: "v8js.memory.heap.used",
+      name: "metric.a",
       type: "gauge",
-      service: "frontend",
+      service: "service-a",
       series: [expect.objectContaining({ last: 6, min: 4, max: 6 })],
     }),
   ]);
@@ -210,10 +215,10 @@ test("reads a counter's rate and total like the app", async () => {
   await receiver.sendHttp(
     "/v1/metrics",
     metricsRequest({
-      service: "frontend",
+      service: "service-a",
       metrics: [
         {
-          name: "http.server.requests",
+          name: "metric.a",
           sum: [
             { start, time: new Date(start.getTime() + 10_000), value: 10 },
             { start, time: new Date(start.getTime() + 20_000), value: 30 },
@@ -226,7 +231,7 @@ test("reads a counter's rate and total like the app", async () => {
   );
   await using mcp = await startTestMcp(receiver);
 
-  const metrics = await mcp.callJson("get_metric", { name: "http.server.requests" });
+  const metrics = await mcp.callJson("get_metric", { name: "metric.a" });
 
   expect(metrics).toEqual([
     expect.objectContaining({
@@ -239,20 +244,20 @@ test("reads a counter's rate and total like the app", async () => {
 test("finds a metric by its exact name among many that contain it", async () => {
   await using receiver = await startTestReceiver();
   const containing = Array.from({ length: 600 }, (_, index) => ({
-    name: `app.requests.${index}`,
+    name: `metric.a.${index}`,
     gauge: [{ time: new Date(), value: index }],
   }));
-  const exact = { name: "requests", gauge: [{ time: new Date(), value: 7 }] };
+  const exact = { name: "metric.a", gauge: [{ time: new Date(), value: 7 }] };
   await receiver.sendHttp(
     "/v1/metrics",
-    metricsRequest({ service: "frontend", metrics: [...containing, exact] }),
+    metricsRequest({ service: "service-a", metrics: [...containing, exact] }),
   );
   await using mcp = await startTestMcp(receiver);
 
-  const metrics = await mcp.callJson("get_metric", { name: "requests" });
+  const metrics = await mcp.callJson("get_metric", { name: "metric.a" });
 
   expect(metrics).toEqual([
-    expect.objectContaining({ name: "requests", series: [expect.objectContaining({ last: 7 })] }),
+    expect.objectContaining({ name: "metric.a", series: [expect.objectContaining({ last: 7 })] }),
   ]);
 });
 

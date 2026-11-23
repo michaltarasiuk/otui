@@ -3,105 +3,97 @@ import { at } from "./clock.ts";
 import { logsRequest, SEVERITY_NUMBER, tracesRequest } from "./otlp.ts";
 import type { TestReceiver } from "./receiver.ts";
 import { tableRows } from "./screen.ts";
-import { chargeSpanId, checkoutTraceId, PLACE_ORDER, placeOrderSpanId } from "./traces.ts";
+import { failedChildSpanId, failedRootSpanId, failedTraceId } from "./traces.ts";
 
 export const otlpLogs = logsRequest(
   {
-    service: "checkout",
-    attributes: { "host.name": "colima" },
-    scope: { name: "checkout" },
+    service: "service-c",
+    attributes: { "resource.a": "value-a" },
+    scope: { name: "scope-a" },
     logs: [
       {
         time: at(0),
         severityNumber: SEVERITY_NUMBER.info,
-        body: "[PlaceOrder]",
-        traceId: checkoutTraceId,
-        spanId: placeOrderSpanId,
-        attributes: { user_currency: "USD" },
+        body: "message-a",
+        traceId: failedTraceId,
+        spanId: failedRootSpanId,
+        attributes: { "attribute.a": "value-a" },
       },
     ],
   },
   {
-    service: "payment",
+    service: "service-d",
     logs: [
       {
         time: at(1000),
         severityNumber: SEVERITY_NUMBER.warn,
         severityText: "warn",
-        body: "Payment request failed. Invalid token.",
-        traceId: checkoutTraceId,
-        spanId: chargeSpanId,
-        attributes: { "demo.user_context.loyalty_level": "gold" },
+        body: "message-b",
+        traceId: failedTraceId,
+        spanId: failedChildSpanId,
+        attributes: { "attribute.b": "value-b" },
       },
       {
         time: at(2000),
         severityNumber: SEVERITY_NUMBER.error,
-        body: "Credit card info is invalid.",
-        traceId: checkoutTraceId,
-        spanId: chargeSpanId,
+        body: "message-c",
+        traceId: failedTraceId,
+        spanId: failedChildSpanId,
       },
     ],
   },
   {
-    service: "frontend",
+    service: "service-h",
     logs: [
       {
         time: at(3000),
         severityNumber: SEVERITY_NUMBER.debug,
-        body: '{"url.path":"/api/cart","http.response.status_code":200}',
+        body: '{"field-a":"value-a","field-b":200}',
       },
     ],
   },
   {
-    service: "cart",
+    service: "service-i",
     logs: [
       {
         time: at(5000),
         severityNumber: SEVERITY_NUMBER.info,
-        eventName: "cart.get",
-        body: "GetCartAsync called\n  with userId={userId}",
+        eventName: "event-a",
+        body: "message-e\n  second line",
       },
     ],
   },
   {
-    service: "product-catalog",
-    logs: [
-      { observedTime: at(6000), severityText: "notice", body: "Database connection established" },
-    ],
+    service: "service-j",
+    logs: [{ observedTime: at(6000), severityText: "notice", body: "message-f" }],
   },
   {
-    service: "ad",
-    logs: [
-      {
-        time: at(4000),
-        severityNumber: SEVERITY_NUMBER.fatal,
-        body: "java.lang.OutOfMemoryError: Java heap space",
-      },
-    ],
+    service: "service-k",
+    logs: [{ time: at(4000), severityNumber: SEVERITY_NUMBER.fatal, body: "message-g" }],
   },
 );
 
-export const checkoutTrace = tracesRequest(
+export const failedTrace = tracesRequest(
   {
-    service: "checkout",
+    service: "service-c",
     spans: [
       {
-        traceId: checkoutTraceId,
-        spanId: placeOrderSpanId,
-        name: PLACE_ORDER,
+        traceId: failedTraceId,
+        spanId: failedRootSpanId,
+        name: "operation-d",
         start: at(0),
         end: at(2500),
       },
     ],
   },
   {
-    service: "payment",
+    service: "service-d",
     spans: [
       {
-        traceId: checkoutTraceId,
-        spanId: chargeSpanId,
-        parentSpanId: placeOrderSpanId,
-        name: "charge",
+        traceId: failedTraceId,
+        spanId: failedChildSpanId,
+        parentSpanId: failedRootSpanId,
+        name: "operation-e",
         start: at(500),
         end: at(2000),
       },
@@ -109,24 +101,22 @@ export const checkoutTrace = tracesRequest(
   },
 );
 
-export const NOTICE_ROW = "12:00:06.000 notice ● product-catalog Database connection established";
-export const CART_EVENT_ROW =
-  "12:00:05.000 INFO ● cart cart.get GetCartAsync called with userId={userId}";
-export const FATAL_ROW = "12:00:04.000 FATAL ● ad java.lang.OutOfMemoryError: Java heap space";
-export const JSON_ROW =
-  '12:00:03.000 DEBUG ● frontend {"url.path":"/api/cart","http.response.status_code":200}';
-export const ERROR_ROW = "12:00:02.000 ERROR ● payment Credit card info is invalid.";
-export const WARN_ROW = "12:00:01.000 WARN ● payment Payment request failed. Invalid token.";
-export const ORDER_ROW = "12:00:00.000 INFO ● checkout [PlaceOrder]";
+export const NOTICE_ROW = "12:00:06.000 notice ● service-j message-f";
+export const EVENT_ROW = "12:00:05.000 INFO ● service-i event-a message-e second line";
+export const FATAL_ROW = "12:00:04.000 FATAL ● service-k message-g";
+export const JSON_ROW = '12:00:03.000 DEBUG ● service-h {"field-a":"value-a","field-b":200}';
+export const ERROR_ROW = "12:00:02.000 ERROR ● service-d message-c";
+export const WARN_ROW = "12:00:01.000 WARN ● service-d message-b";
+export const INFO_ROW = "12:00:00.000 INFO ● service-c message-a";
 
 export const NEWEST_FIRST = [
   NOTICE_ROW,
-  CART_EVENT_ROW,
+  EVENT_ROW,
   FATAL_ROW,
   JSON_ROW,
   ERROR_ROW,
   WARN_ROW,
-  ORDER_ROW,
+  INFO_ROW,
 ];
 
 export async function renderLogList(receiver: TestReceiver, options?: AppOptions) {

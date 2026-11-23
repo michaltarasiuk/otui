@@ -31,19 +31,17 @@ function series(
   };
 }
 
-const FRONTEND_INSTANCE_ID = "efe50e2b-c27e-4d60-b585-525713841890";
-
 describe("attributeColumns", () => {
   test("shows every attribute of a lone series and no resource attributes", () => {
     const lone = series(
       "1",
-      { "http.request.method": "GET", "http.route": "/api/cart" },
-      { "host.name": "colima" },
+      { "attribute.a": "value-a", "attribute.b": "value-b" },
+      { "resource.a": "value-a" },
     );
 
     expect(attributeColumns([lone])).toEqual([
-      { key: "http.request.method", source: "attributes", weight: 8 },
-      { key: "http.route", source: "attributes", weight: 9 },
+      { key: "attribute.a", source: "attributes", weight: 8 },
+      { key: "attribute.b", source: "attributes", weight: 8 },
     ]);
   });
 
@@ -51,46 +49,32 @@ describe("attributeColumns", () => {
     const rows = [
       series(
         "1",
-        { "http.route": "/api/cart", "http.request.method": "GET" },
-        { "service.instance.id": FRONTEND_INSTANCE_ID, "service.namespace": "opentelemetry-demo" },
+        { "attribute.a": "value-a", "attribute.b": "value-a" },
+        { "resource.a": "value-a", "resource.b": "value-a" },
       ),
       series(
         "2",
-        { "http.route": "/api/currency", "http.request.method": "GET" },
-        { "service.instance.id": FRONTEND_INSTANCE_ID, "service.namespace": "opentelemetry-demo" },
+        { "attribute.a": "value-b", "attribute.b": "value-a" },
+        { "resource.a": "value-a", "resource.b": "value-a" },
       ),
       series(
         "3",
-        {
-          "http.route": "/api/data",
-          "http.request.method": "GET",
-          "http.response.status_code": "500",
-        },
-        {
-          "service.instance.id": "a1d5c3f0-6f2e-4b8a-9c47-2f0e8d6b1a93",
-          "service.namespace": "opentelemetry-demo",
-        },
+        { "attribute.a": "value-c", "attribute.b": "value-a", "attribute.c": "value-a" },
+        { "resource.a": "value-b", "resource.b": "value-a" },
       ),
     ];
 
     expect(attributeColumns(rows)).toEqual([
-      { key: "http.response.status_code", source: "attributes", weight: 8 },
-      { key: "http.route", source: "attributes", weight: 13 },
-      { key: "service.instance.id", source: "resource_attributes", weight: 32 },
+      { key: "attribute.c", source: "attributes", weight: 8 },
+      { key: "attribute.a", source: "attributes", weight: 8 },
+      { key: "resource.a", source: "resource_attributes", weight: 8 },
     ]);
   });
 
   test("weighs a column by its longest value within limits", () => {
     const rows = [
-      series("1", {
-        "http.route": "/api/products/[productId]/index",
-        "user_agent.original": "python-requests/2.34.2",
-      }),
-      series("2", {
-        "http.route": "/",
-        "user_agent.original":
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
-      }),
+      series("1", { "attribute.a": "x".repeat(31), "attribute.b": "x" }),
+      series("2", { "attribute.a": "x", "attribute.b": "x".repeat(40) }),
     ];
 
     expect(attributeColumns(rows).map((column) => column.weight)).toEqual([31, 32]);
@@ -98,20 +82,20 @@ describe("attributeColumns", () => {
 });
 
 describe("seriesLabel", () => {
-  const method: AttributeColumn = { key: "http.request.method", source: "attributes", weight: 8 };
-  const route: AttributeColumn = { key: "http.route", source: "attributes", weight: 8 };
+  const columnA: AttributeColumn = { key: "attribute.a", source: "attributes", weight: 8 };
+  const columnB: AttributeColumn = { key: "attribute.b", source: "attributes", weight: 8 };
 
   test("joins the series' column values", () => {
-    const row = series("1", { "http.request.method": "GET", "http.route": "/api/cart" });
+    const row = series("1", { "attribute.a": "value-a", "attribute.b": "value-b" });
 
-    expect(seriesLabel(row, [method, route])).toBe("GET · /api/cart");
+    expect(seriesLabel(row, [columnA, columnB])).toBe("value-a · value-b");
   });
 
   test("skips columns the series has no value for", () => {
-    const row = series("1", { "http.route": "/api/cart" });
+    const row = series("1", { "attribute.b": "value-b" });
 
-    expect(cellValue(row, method)).toBe("");
-    expect(seriesLabel(row, [method, route])).toBe("/api/cart");
+    expect(cellValue(row, columnA)).toBe("");
+    expect(seriesLabel(row, [columnA, columnB])).toBe("value-b");
   });
 
   test("names a series without attributes", () => {
@@ -122,14 +106,14 @@ describe("seriesLabel", () => {
 describe("sortByColumns", () => {
   test("orders series by each column in turn, then by ID", () => {
     const rows = [
-      series("1", { "http.request.method": "POST", "http.route": "/api/cart" }),
-      series("2", { "http.request.method": "GET", "http.route": "/api/currency" }),
-      series("4", { "http.request.method": "GET", "http.route": "/api/cart" }),
-      series("3", { "http.request.method": "GET", "http.route": "/api/cart" }),
+      series("1", { "attribute.a": "value-b", "attribute.b": "value-a" }),
+      series("2", { "attribute.a": "value-a", "attribute.b": "value-b" }),
+      series("4", { "attribute.a": "value-a", "attribute.b": "value-a" }),
+      series("3", { "attribute.a": "value-a", "attribute.b": "value-a" }),
     ];
     const columns = attributeColumns(rows);
 
-    expect(columns.map((column) => column.key)).toEqual(["http.request.method", "http.route"]);
+    expect(columns.map((column) => column.key)).toEqual(["attribute.a", "attribute.b"]);
     expect(sortByColumns(rows, columns).map((row) => row.series_id)).toEqual(["3", "4", "2", "1"]);
   });
 });
