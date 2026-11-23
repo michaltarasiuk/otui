@@ -11,7 +11,7 @@ import { formatAgo } from "#utils/time.ts";
 
 function receiverCountersQuery(connection: DuckDBConnection, listenUrl: string) {
   return queryOptions({
-    queryKey: ["receiver-status", listenUrl],
+    queryKey: ["receiver-counters", listenUrl],
     queryFn: () => readReceiverCounters(connection, listenUrl),
     refetchInterval: POLL_INTERVAL_MS,
   });
@@ -35,14 +35,15 @@ interface ReceiverStatusProps {
 }
 
 export function ReceiverStatus({ httpUrl, grpcUrl, mcpUrl }: ReceiverStatusProps) {
-  const connection = useConnection();
-  const { data: counters } = useQuery(receiverCountersQuery(connection, httpUrl));
   const paused = usePaused();
+
+  const connection = useConnection();
+  const { data: counters = null } = useQuery(receiverCountersQuery(connection, httpUrl));
 
   return (
     <text fg={THEME.textMuted} wrapMode="none" truncate>
       {paused && <span fg={THEME.textWarning}>paused · </span>}
-      {counters != null && `${formatReceived(counters)} · `}
+      {counters !== null && `${formatReceived(counters)} · `}
       OTLP/HTTP {new URL(httpUrl).host} · OTLP/gRPC {new URL(grpcUrl).host}
       {mcpUrl !== undefined && ` · MCP ${new URL(mcpUrl).host}`}
     </text>
