@@ -14,12 +14,6 @@ const UNLABELED_SERIES = "no attributes";
 
 type AttributeSource = (typeof ATTRIBUTE_SOURCES)[number];
 
-export interface AttributeColumn {
-  key: string;
-  source: AttributeSource;
-  weight: number;
-}
-
 export function attributeColumns(series: Series[]) {
   if (series.length === 1) {
     const attributes = attributeValues(series.map((row) => row.attributes));
@@ -33,13 +27,17 @@ export function attributeColumns(series: Series[]) {
   });
 }
 
+export type AttributeColumn = ReturnType<typeof attributeColumns>[number];
+
 function tellsApart({ values, count }: AttributeValues, seriesCount: number) {
-  return values.length > 1 || count < seriesCount;
+  const variesInValue = values.length > 1;
+  const missingFromSome = count < seriesCount;
+  return variesInValue || missingFromSome;
 }
 
 function toColumns(source: AttributeSource, attributes: AttributeValues[]) {
   return attributes
-    .toSorted((a, b) => a.values.length - b.values.length || a.key.localeCompare(b.key))
+    .toSorted((a, b) => a.values.length - b.values.length || compareText(a.key, b.key))
     .map(({ key, values }) => ({ key, source, weight: columnWeight(values) }));
 }
 
@@ -49,15 +47,13 @@ function columnWeight(values: string[]) {
 }
 
 export function cellValue(series: Series, { key, source }: AttributeColumn) {
-  return series[source].find((attribute) => attribute.key === key)?.value ?? "";
+  const attribute = series[source].find((candidate) => candidate.key === key);
+  return attribute?.value ?? "";
 }
 
 export function seriesLabel(series: Series, columns: AttributeColumn[]) {
-  const label = columns
-    .map((column) => cellValue(series, column))
-    .filter((value) => value !== "")
-    .join(LABEL_SEPARATOR);
-  return label === "" ? UNLABELED_SERIES : label;
+  const values = columns.map((column) => cellValue(series, column)).filter((value) => value !== "");
+  return values.length === 0 ? UNLABELED_SERIES : values.join(LABEL_SEPARATOR);
 }
 
 export function sortByColumns(series: Series[], columns: AttributeColumn[]) {
@@ -69,6 +65,6 @@ export function sortByColumns(series: Series[], columns: AttributeColumn[]) {
       }
     }
 
-    return a.series_id.localeCompare(b.series_id);
+    return compareText(a.series_id, b.series_id);
   });
 }
