@@ -2,6 +2,8 @@ import type { ColorInput } from "@opentui/core";
 
 import { THEME } from "./theme.ts";
 
+export const PAGE_HEADER_HEIGHT = 1;
+
 interface PageHeaderProps {
   children: React.ReactNode;
 }

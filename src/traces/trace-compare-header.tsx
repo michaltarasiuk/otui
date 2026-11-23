@@ -2,12 +2,11 @@ import { DetailsHeader, Fact, Id, Meta, Title } from "#ui/details.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
 import { formatInteger } from "#utils/number.ts";
+import { shortId } from "#utils/text.ts";
 import { formatDuration, formatOffset } from "#utils/time.ts";
 
 import { traceDuration } from "./span-tree.ts";
 import type { Span } from "./span.ts";
-
-const SHORT_ID_LENGTH = 8;
 
 function errorCount(spans: Span[]) {
   return spans.filter((span) => span.is_error).length;
@@ -38,7 +37,7 @@ export function TraceCompareHeader({
       <DetailsHeader>
         <Title>{root.name}</Title>
         <Id>
-          {beforeId.slice(0, SHORT_ID_LENGTH)} → {afterId.slice(0, SHORT_ID_LENGTH)}
+          {shortId(beforeId)} → {shortId(afterId)}
         </Id>
       </DetailsHeader>
       <Meta>

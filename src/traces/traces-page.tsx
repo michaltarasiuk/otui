@@ -9,8 +9,8 @@ import { RangeKeys } from "#ui/histogram/range-keys.tsx";
 import { timeRangeLabel } from "#ui/histogram/time-columns.ts";
 import { HISTOGRAM_HEIGHT, TimeHistogram } from "#ui/histogram/time-histogram.tsx";
 import { useTimeRange } from "#ui/histogram/use-time-range.ts";
-import { ErrorKeys, Key, KeyHints, SortKeys } from "#ui/key-hints.tsx";
-import { Chip, Count, PageHeader } from "#ui/page-header.tsx";
+import { ErrorKeys, Key, KEY_HINTS_HEIGHT, KeyHints, SortKeys } from "#ui/key-hints.tsx";
+import { Chip, Count, PAGE_HEADER_HEIGHT, PageHeader } from "#ui/page-header.tsx";
 import { PauseKey } from "#ui/pause.tsx";
 import { Placeholder } from "#ui/placeholder.tsx";
 import { SearchInput } from "#ui/search-input.tsx";
@@ -29,9 +29,7 @@ import { traceListQuery, traceTimelineQuery } from "./trace-queries.ts";
 import { TraceTable } from "./trace-table.tsx";
 import { type MarkedTrace, TRACE_SORT_COLUMNS, type Trace, type TraceSort } from "./trace.ts";
 
-const PAGE_HEADER_HEIGHT = 1;
 const MIN_TABLE_HEIGHT = 6;
-const KEY_HINTS_HEIGHT = 1;
 const MIN_HEIGHT_FOR_HISTOGRAM =
   PAGE_HEADER_HEIGHT + HISTOGRAM_HEIGHT + MIN_TABLE_HEIGHT + KEY_HINTS_HEIGHT;
 

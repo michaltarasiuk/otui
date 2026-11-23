@@ -8,6 +8,8 @@ import { COLUMN_GAP } from "./columns.ts";
 import { FocusRoot, useFocus } from "./focus.tsx";
 import { THEME } from "./theme.ts";
 
+export const KEY_HINTS_HEIGHT = 1;
+
 export const AppKeys = createContext<React.ReactNode>(null);
 
 interface KeyHintsProps {

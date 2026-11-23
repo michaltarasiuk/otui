@@ -10,8 +10,8 @@ import { RangeKeys } from "#ui/histogram/range-keys.tsx";
 import { timeRangeLabel } from "#ui/histogram/time-columns.ts";
 import { HISTOGRAM_HEIGHT, TimeHistogram } from "#ui/histogram/time-histogram.tsx";
 import { useTimeRange } from "#ui/histogram/use-time-range.ts";
-import { ErrorKeys, Key, KeyHints, StepKeys } from "#ui/key-hints.tsx";
-import { Chip, Count, PageHeader } from "#ui/page-header.tsx";
+import { ErrorKeys, Key, KEY_HINTS_HEIGHT, KeyHints, StepKeys } from "#ui/key-hints.tsx";
+import { Chip, Count, PAGE_HEADER_HEIGHT, PageHeader } from "#ui/page-header.tsx";
 import { PauseKey } from "#ui/pause.tsx";
 import { Placeholder } from "#ui/placeholder.tsx";
 import { ScrollKeys } from "#ui/scroll-box.tsx";
@@ -23,6 +23,7 @@ import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
 import { cycle, findNextIndex } from "#utils/cycle.ts";
 import { formatShownCount } from "#utils/number.ts";
+import { shortId } from "#utils/text.ts";
 
 import { LogDetails } from "./log-details.tsx";
 import { logListQuery, logTimelineQuery } from "./log-queries.ts";
@@ -34,11 +35,7 @@ import { isErrorLevel } from "./severity.ts";
 const MIN_SEVERITIES = [undefined, "DEBUG", "INFO", "WARN", "ERROR", "FATAL"] as const;
 type MinSeverity = (typeof MIN_SEVERITIES)[number];
 
-const SHORT_ID_LENGTH = 8;
-
-const PAGE_HEADER_HEIGHT = 1;
 const MIN_TABLE_AND_DETAILS_HEIGHT = 12;
-const KEY_HINTS_HEIGHT = 1;
 const MIN_HEIGHT_FOR_HISTOGRAM =
   PAGE_HEADER_HEIGHT + HISTOGRAM_HEIGHT + MIN_TABLE_AND_DETAILS_HEIGHT + KEY_HINTS_HEIGHT;
 
@@ -89,8 +86,8 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
     <box flexGrow={1}>
       <PageHeader>
         <Meta>
-          {traceId !== undefined && <Chip>trace {traceId.slice(0, SHORT_ID_LENGTH)}</Chip>}
-          {spanId !== undefined && <Chip>span {spanId.slice(0, SHORT_ID_LENGTH)}</Chip>}
+          {traceId !== undefined && <Chip>trace {shortId(traceId)}</Chip>}
+          {spanId !== undefined && <Chip>span {shortId(spanId)}</Chip>}
           {minSeverity !== undefined && (
             <Chip color={severityColor(minSeverity)}>≥ {minSeverity}</Chip>
           )}
