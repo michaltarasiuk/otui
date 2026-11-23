@@ -1,7 +1,7 @@
 import { useBindings } from "@opentui/keymap/react";
 import { createContext, type SetStateAction, use, useEffectEvent, useId } from "react";
 
-import { cycle } from "#utils/cycle.ts";
+import { cycle, type Step } from "#utils/cycle.ts";
 import type { Sort } from "#utils/sort.ts";
 
 import { COLUMN_GAP } from "./columns.ts";
@@ -42,15 +42,7 @@ export function Key({ name, priority = 0, description, onPress, children }: KeyP
     () => ({
       enabled: focused && keysEnabled,
       priority,
-      commands: [
-        {
-          name: command,
-          ...(desc === undefined ? {} : { desc }),
-          run: () => {
-            press();
-          },
-        },
-      ],
+      commands: [{ name: command, ...(desc === undefined ? {} : { desc }), run: () => press() }],
       bindings: [{ key: name, cmd: command }],
     }),
     [focused, keysEnabled, priority, command, desc, name],
@@ -73,7 +65,7 @@ interface StepKeysProps {
   priority?: number | undefined;
   description?: string | undefined;
   backwardDescription: string;
-  onStep: (step: 1 | -1) => void;
+  onStep: (step: Step) => void;
   children?: string | undefined;
 }
 
@@ -104,26 +96,16 @@ export function StepKeys({
 interface ListKeysProps {
   description: string;
   backwardDescription: string;
-  onStep: (step: 1 | -1) => void;
+  onStep: (step: Step) => void;
 }
 
 export function ListKeys({ description, backwardDescription, onStep }: ListKeysProps) {
   return (
     <>
-      <StepKeys
-        forward="down"
-        backward="up"
-        description={description}
-        backwardDescription={backwardDescription}
-        onStep={(step) => onStep(step)}
-      />
-      <StepKeys
-        forward="j"
-        backward="k"
-        description={description}
-        backwardDescription={backwardDescription}
-        onStep={(step) => onStep(step)}
-      />
+      <Key name="down" description={description} onPress={() => onStep(1)} />
+      <Key name="up" description={backwardDescription} onPress={() => onStep(-1)} />
+      <Key name="j" description={description} onPress={() => onStep(1)} />
+      <Key name="k" description={backwardDescription} onPress={() => onStep(-1)} />
     </>
   );
 }
@@ -156,7 +138,7 @@ export function SortKeys<C>({ columns, ascending = [], onChange }: SortKeysProps
 }
 
 interface ErrorKeysProps {
-  onStep: (step: 1 | -1) => void;
+  onStep: (step: Step) => void;
 }
 
 export function ErrorKeys({ onStep }: ErrorKeysProps) {

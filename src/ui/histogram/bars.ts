@@ -1,3 +1,4 @@
+import type { Step } from "#utils/cycle.ts";
 import { clamp } from "#utils/number.ts";
 
 const LOWER_BLOCKS = "▁▂▃▄▅▆▇█";
@@ -28,7 +29,7 @@ export function overlaps(a: HistogramRange, b: HistogramRange) {
 export function stepSelection(
   occupied: HistogramRange[],
   selected: HistogramRange | undefined,
-  step: 1 | -1,
+  step: Step,
 ) {
   let next: HistogramRange | undefined;
   if (selected === undefined) {

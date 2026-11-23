@@ -2,6 +2,7 @@ import { type BoxRenderable, MouseButton } from "@opentui/core";
 import { useBindings } from "@opentui/keymap/react";
 import { useEffectEvent, useRef, useState } from "react";
 
+import type { Step } from "#utils/cycle.ts";
 import { clamp } from "#utils/number.ts";
 
 import { useFocus } from "./focus.tsx";
@@ -36,8 +37,8 @@ export function Rows<T>({ items, selection, halfPageKeys = false, children }: Ro
   const scrollThumbTop = Math.round((firstVisibleIndex / hiddenRowCount) * (visibleRowCount - 1));
 
   const moveBy = useEffectEvent((offset: number) => selection.move(offset));
-  const movePage = useEffectEvent((direction: 1 | -1) => moveBy(direction * visibleRowCount));
-  const moveHalfPage = useEffectEvent((direction: 1 | -1) => moveBy(direction * halfPage));
+  const movePage = useEffectEvent((direction: Step) => moveBy(direction * visibleRowCount));
+  const moveHalfPage = useEffectEvent((direction: Step) => moveBy(direction * halfPage));
   const moveTo = useEffectEvent((index: number) => selection.select(index));
   const moveToLast = useEffectEvent(() => selection.select(items.length - 1));
 

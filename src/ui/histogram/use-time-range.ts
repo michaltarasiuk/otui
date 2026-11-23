@@ -1,5 +1,7 @@
 import { useDeferredValue, useState } from "react";
 
+import type { Step } from "#utils/cycle.ts";
+
 import { type HistogramRange, stepSelection } from "./bars.ts";
 
 export function useTimeRange() {
@@ -9,7 +11,7 @@ export function useTimeRange() {
   return {
     selected,
     deferredSelected,
-    step(occupied: HistogramRange[], step: 1 | -1) {
+    step(occupied: HistogramRange[], step: Step) {
       setSelected((selected) => stepSelection(occupied, selected, step));
     },
     clear() {
