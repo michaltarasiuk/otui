@@ -36,5 +36,9 @@ interface ContentProps {
 export function Content({ children }: ContentProps) {
   const { width, height = 0 } = useRegionSize();
 
-  return <SizeProvider value={{ width, height: height - TOP_BAR_HEIGHT }}>{children}</SizeProvider>;
+  return (
+    <box flexGrow={1}>
+      <SizeProvider value={{ width, height: height - TOP_BAR_HEIGHT }}>{children}</SizeProvider>
+    </box>
+  );
 }
