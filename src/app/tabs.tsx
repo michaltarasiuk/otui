@@ -27,11 +27,20 @@ interface TabsProps {
 export function Tabs({ current, onSelect }: TabsProps) {
   const { focused, keysEnabled, requestFocus } = useFocus();
 
+  const index = TABS.findIndex((tab) => tab.value === current);
+
   const tabsRef = useRef<TabSelectRenderable>(null);
 
   useEffect(() => {
-    tabsRef.current?.setSelectedIndex(TABS.findIndex((option) => option.value === current));
-  }, [current]);
+    tabsRef.current?.setSelectedIndex(index);
+  }, [index]);
+
+  function select(index: number) {
+    const tab = TABS[index];
+    if (tab !== undefined) {
+      onSelect(tab.value);
+    }
+  }
 
   return (
     <tab-select
@@ -47,18 +56,12 @@ export function Tabs({ current, onSelect }: TabsProps) {
       showDescription={false}
       showUnderline={false}
       onMouseDown={(event) => {
-        const tab = TABS[Math.floor((event.x - (event.currentTarget?.x ?? 0)) / TAB_WIDTH)];
-        if (event.button === MouseButton.LEFT && tab !== undefined) {
+        if (event.button === MouseButton.LEFT) {
           requestFocus();
-          onSelect(tab.value);
+          select(Math.floor((event.x - (event.currentTarget?.x ?? 0)) / TAB_WIDTH));
         }
       }}
-      onChange={(index) => {
-        const option = TABS[index];
-        if (option !== undefined) {
-          onSelect(option.value);
-        }
-      }}
+      onChange={(index) => select(index)}
     />
   );
 }
