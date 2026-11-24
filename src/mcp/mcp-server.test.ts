@@ -38,6 +38,7 @@ test("lists read-only tools for each view", async () => {
     "list_traces",
   ]);
   expect(tools.every((tool) => tool.annotations?.readOnlyHint === true)).toBe(true);
+  expect(mcp.client.getInstructions()).toContain("list_traces gives trace IDs");
 });
 
 test("serves clients of the 2025 protocol", async () => {
@@ -48,6 +49,18 @@ test("serves clients of the 2025 protocol", async () => {
   const outline = await mcp.callText("get_trace", { trace_id: singleTraceId });
 
   expect(outline).toStartWith(`trace ${singleTraceId}: `);
+});
+
+test("rejects arguments a tool doesn't take", async () => {
+  await using receiver = await startTestReceiver();
+  await using mcp = await startTestMcp(receiver);
+
+  const result = await mcp.call("list_traces", { service_name: "service-a" });
+
+  expect(result).toEqual({
+    isError: true,
+    texts: [expect.stringContaining('Unrecognized key: "service_name"')],
+  });
 });
 
 test("lists traces with the same search as the app", async () => {
@@ -63,6 +76,34 @@ test("lists traces with the same search as the app", async () => {
   expect(await mcp.callJson("list_traces", { search: "duration>200ms" })).toEqual([
     expect.objectContaining({ trace_id: failedTraceId, error_count: 2 }),
   ]);
+});
+
+test("says when more traces match than the limit", async () => {
+  await using receiver = await startTestReceiver();
+  await receiver.sendHttp("/v1/traces", otlpTraces);
+  await using mcp = await startTestMcp(receiver);
+
+  const { texts } = await mcp.call("list_traces", { limit: 2 });
+
+  const [json = "", note] = texts;
+  expect(JSON.parse(json)).toHaveLength(2);
+  expect(note).toBe(
+    "More traces match than the 2 shown. Narrow the search, or raise limit up to 200.",
+  );
+});
+
+test("reports a trace it doesn't store as a tool error", async () => {
+  await using receiver = await startTestReceiver();
+  await using mcp = await startTestMcp(receiver);
+
+  const result = await mcp.call("get_trace", { trace_id: singleTraceId });
+
+  expect(result).toEqual({
+    isError: true,
+    texts: [
+      `No spans stored for trace ${singleTraceId}. list_traces returns the stored trace IDs.`,
+    ],
+  });
 });
 
 test("outlines a trace's spans with the critical path and errors", async () => {
@@ -115,12 +156,15 @@ test("refuses to compare traces with different root spans", async () => {
   await receiver.sendHttp("/v1/traces", otlpTraces);
   await using mcp = await startTestMcp(receiver);
 
-  const text = await mcp.callText("compare_traces", {
+  const result = await mcp.call("compare_traces", {
     before_trace_id: nestedTraceId,
     after_trace_id: failedTraceId,
   });
 
-  expect(text).toBe("The traces start with different root spans, so they don't compare");
+  expect(result).toEqual({
+    isError: true,
+    texts: [expect.stringContaining("The traces start with different root spans")],
+  });
 });
 
 test("reads a span's attributes and resource", async () => {

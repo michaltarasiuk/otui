@@ -14,6 +14,14 @@ import { StartupError } from "#utils/startup-error.ts";
 
 import { registerTools } from "./tools.ts";
 
+const INSTRUCTIONS = dedent`
+  otui keeps the OpenTelemetry traces, metrics, and logs it receives in memory for a limited time.
+  Start from a list tool and follow its IDs and names:
+  list_traces gives trace IDs for get_trace, compare_traces, and list_logs,
+  get_trace gives span IDs for get_span, and list_metrics gives names for get_metric.
+  Service rates, error ratios, and latencies cover the last 5 minutes.
+`;
+
 interface McpServerOptions {
   connection: DuckDBConnection;
   port: number;
@@ -22,7 +30,7 @@ interface McpServerOptions {
 
 export function startMcpServer({ connection, port, version }: McpServerOptions) {
   const handler = createMcpHandler(() => {
-    const server = new McpServer({ name: "otui", version });
+    const server = new McpServer({ name: "otui", version }, { instructions: INSTRUCTIONS });
     registerTools(server, connection);
     return server;
   });

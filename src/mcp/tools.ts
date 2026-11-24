@@ -36,20 +36,49 @@ const MAX_COMPARED_ROWS = 50;
 
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
 
-const SEARCH_HELP =
-  "Words match names, services, and IDs. " +
-  "key=value, key!=value, and key>number (also >=, <, <=) match span, log, metric, " +
-  "or resource attributes. " +
-  "On traces, duration>500ms compares span durations.";
+const Search = z
+  .string()
+  .default("")
+  .describe(
+    "Words match names, services, and IDs. " +
+      "key=value, key!=value, and key>number (also >=, <, <=) match span, log, metric, " +
+      "or resource attributes. " +
+      "On traces, duration>500ms compares span durations.",
+  );
 
-const Limit = z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT);
+const Limit = z
+  .number()
+  .int()
+  .min(1)
+  .max(MAX_LIMIT)
+  .default(DEFAULT_LIMIT)
+  .describe("How many to return at most");
+
+function textContent(text: string) {
+  return { type: "text" as const, text };
+}
 
 function textResult(text: string) {
-  return { content: [{ type: "text" as const, text }] };
+  return { content: [textContent(text)] };
+}
+
+function errorResult(text: string) {
+  return { content: [textContent(text)], isError: true };
 }
 
 function jsonResult(value: unknown) {
   return textResult(JSON.stringify(value, null, 1));
+}
+
+function listResult(rows: unknown[], limit: number, noun: string) {
+  const shown = jsonResult(rows.slice(0, limit));
+  if (rows.length <= limit) {
+    return shown;
+  }
+  const note =
+    `More ${noun} match than the ${limit} shown. ` +
+    `Narrow the search, or raise limit up to ${MAX_LIMIT}.`;
+  return { content: [...shown.content, textContent(note)] };
 }
 
 function attributeObject(attributes: Attributes) {
@@ -179,10 +208,10 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
       description:
         "Services seen in the last 5 minutes, with request rate per second, error ratio, " +
         "and p50, p95, and p99 latency in milliseconds, from their server and consumer spans.",
-      inputSchema: {
+      inputSchema: z.strictObject({
         search: z.string().default("").describe("Part of a service name"),
-        sort: z.enum(["rate", "error_ratio", "p95_ms"]).default("rate"),
-      },
+        sort: z.enum(["rate", "error_ratio", "p95_ms"]).default("rate").describe("Highest first"),
+      }),
       annotations: READ_ONLY,
     },
     async ({ search, sort }) => {
@@ -198,10 +227,15 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
       description:
         "A service's operations (server and consumer span names) in the last 5 minutes, " +
         "with rate per second, error ratio, and p50, p95, and p99 latency in milliseconds.",
-      inputSchema: { service: z.string().describe("Service name, as list_services returns it") },
+      inputSchema: z.strictObject({
+        service: z.string().describe("Service name, as list_services returns it"),
+      }),
       annotations: READ_ONLY,
     },
-    async ({ service }) => jsonResult(await readServiceOperations(connection, service)),
+    async ({ service }) => {
+      const operations = await readServiceOperations(connection, service);
+      return jsonResult(operations);
+    },
   );
 
   server.registerTool(
@@ -214,7 +248,7 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         "in milliseconds of the called spans. " +
         "External calls are client or producer spans with no child span, " +
         "named by peer.service, db.system.name, db.system, messaging.system, or server.address.",
-      inputSchema: {},
+      inputSchema: z.strictObject({}),
       annotations: READ_ONLY,
     },
     async () => {
@@ -227,20 +261,21 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
     "list_traces",
     {
       title: "List traces",
-      description: `Traces whose root span arrived, newest or slowest first. ${SEARCH_HELP}`,
-      inputSchema: {
-        search: z.string().default(""),
+      description: "Traces whose root span arrived, newest or slowest first.",
+      inputSchema: z.strictObject({
+        search: Search,
         service: z.string().optional().describe("Only traces with a span from this service"),
         operation: z
           .string()
           .optional()
           .describe("With service: only traces with this server or consumer span name"),
-        errors_only: z.boolean().default(false),
+        errors_only: z.boolean().default(false).describe("Only traces with a span that failed"),
         sort: z
           .enum(["start_time", "duration_ms", "span_count", "error_count"])
-          .default("start_time"),
+          .default("start_time")
+          .describe("Newest, longest, or most first"),
         limit: Limit,
-      },
+      }),
       annotations: READ_ONLY,
     },
     async ({ search, service, operation, errors_only, sort, limit }) => {
@@ -252,8 +287,12 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         timeRange: undefined,
         sort: descending(sort),
       };
-      const traces = await readTraceList(connection, query, limit);
-      return jsonResult(traces.map((trace) => traceSummary(trace)));
+      const traces = await readTraceList(connection, query, limit + 1);
+      return listResult(
+        traces.map((trace) => traceSummary(trace)),
+        limit,
+        "traces",
+      );
     },
   );
 
@@ -266,13 +305,17 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         "offset from the trace start, ID, and error status, with the critical path marked. " +
         "Large traces keep the critical path and the spans with errors. " +
         "Use get_span for a span's attributes, events, and links.",
-      inputSchema: { trace_id: z.string() },
+      inputSchema: z.strictObject({
+        trace_id: z.string().describe("Trace ID, as list_traces or list_logs returns it"),
+      }),
       annotations: READ_ONLY,
     },
     async ({ trace_id }) => {
       const spans = await readTraceSpans(connection, trace_id);
       if (spans.length === 0) {
-        return textResult(`No spans stored for trace ${trace_id}`);
+        return errorResult(
+          `No spans stored for trace ${trace_id}. list_traces returns the stored trace IDs.`,
+        );
       }
       return textResult(traceOutline(trace_id, spans, MAX_TRACE_SPANS));
     },
@@ -288,8 +331,12 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         "a tenth or that only one trace has, in tree order. " +
         "Self time is a span's duration minus the time its children cover. " +
         "Operations sum self time per service and name, biggest change first, " +
-        "so they show where the time went.",
-      inputSchema: { before_trace_id: z.string(), after_trace_id: z.string() },
+        "so they show where the time went. " +
+        "list_traces with service and operation finds traces with the same root span.",
+      inputSchema: z.strictObject({
+        before_trace_id: z.string().describe("The trace to compare from, such as a fast one"),
+        after_trace_id: z.string().describe("The trace to compare to, such as a slow one"),
+      }),
       annotations: READ_ONLY,
     },
     async ({ before_trace_id, after_trace_id }) => {
@@ -302,22 +349,30 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         ...(after.length === 0 ? [after_trace_id] : []),
       ];
       if (missing.length > 0) {
-        return textResult(`No spans stored for trace ${missing.join(" or ")}`);
+        return errorResult(
+          `No spans stored for trace ${missing.join(" or ")}. ` +
+            "list_traces returns the stored trace IDs.",
+        );
       }
       const [beforeRoot] = before;
       const [afterRoot] = after;
       if (beforeRoot === undefined || afterRoot === undefined || !sameRoot(beforeRoot, afterRoot)) {
-        return textResult("The traces start with different root spans, so they don't compare");
+        return errorResult(
+          "The traces start with different root spans, so they don't compare. " +
+            "list_traces with service and operation finds traces with the same root span.",
+        );
       }
       const changed = diffSpans(before, after).filter((row) => hasChanged(row));
+      const operations = diffOperations(before, after);
       return jsonResult({
         before: traceTotals(before_trace_id, before),
         after: traceTotals(after_trace_id, after),
         changed_spans: changed.slice(0, MAX_COMPARED_ROWS).map((row) => spanDiffSummary(row)),
         changed_spans_left_out: Math.max(0, changed.length - MAX_COMPARED_ROWS),
-        operations: diffOperations(before, after)
+        operations: operations
           .slice(0, MAX_COMPARED_ROWS)
           .map((operation) => operationDiffSummary(operation)),
+        operations_left_out: Math.max(0, operations.length - MAX_COMPARED_ROWS),
       });
     },
   );
@@ -327,13 +382,19 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
     {
       title: "Get a span",
       description: "A span's attributes, resource attributes, scope, events, and links.",
-      inputSchema: { trace_id: z.string(), span_id: z.string() },
+      inputSchema: z.strictObject({
+        trace_id: z.string().describe("ID of the trace the span belongs to"),
+        span_id: z.string().describe("Span ID, as get_trace or list_logs returns it"),
+      }),
       annotations: READ_ONLY,
     },
     async ({ trace_id, span_id }) => {
       const content = await readSpanContent(connection, trace_id, span_id);
       if (content === null) {
-        return textResult(`No span ${span_id} stored in trace ${trace_id}`);
+        return errorResult(
+          `No span ${span_id} stored in trace ${trace_id}. ` +
+            "get_trace lists the span IDs of a trace.",
+        );
       }
       return jsonResult(spanSummary(content));
     },
@@ -344,14 +405,17 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
     {
       title: "List metrics",
       description:
-        "Metrics with their type, unit, service, description, series count, and last update. " +
-        SEARCH_HELP,
-      inputSchema: { search: z.string().default(""), limit: Limit },
+        "Metrics with their type, unit, service, description, series count, and last update.",
+      inputSchema: z.strictObject({ search: Search, limit: Limit }),
       annotations: READ_ONLY,
     },
     async ({ search, limit }) => {
-      const metrics = await readMetricList(connection, { search, sort: BY_NAME }, limit);
-      return jsonResult(metrics.map((metric) => metricSummary(metric)));
+      const metrics = await readMetricList(connection, { search, sort: BY_NAME }, limit + 1);
+      return listResult(
+        metrics.map((metric) => metricSummary(metric)),
+        limit,
+        "metrics",
+      );
     },
   );
 
@@ -364,17 +428,20 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         "Counters give their latest rate per second and their total, " +
         "gauges and up-down counters their last value, min, and max, " +
         "and histograms their count, sum, min, max, and p50, p95, and p99.",
-      inputSchema: {
-        name: z.string().describe("Exact metric name"),
-        service: z.string().optional(),
-      },
+      inputSchema: z.strictObject({
+        name: z.string().describe("Exact metric name, as list_metrics returns it"),
+        service: z
+          .string()
+          .optional()
+          .describe("Only the metric from this service, when several services send it"),
+      }),
       annotations: READ_ONLY,
     },
     async ({ name, service }) => {
       const metrics = await readNamedMetrics(connection, name, service);
       if (metrics.length === 0) {
         const from = service === undefined ? "" : ` from ${service}`;
-        return textResult(`No metric named ${name}${from}`);
+        return errorResult(`No metric named ${name}${from}. list_metrics returns metric names.`);
       }
       const summaries = await Promise.all(
         metrics.map(async (metric) => {
@@ -397,15 +464,17 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
     {
       title: "List logs",
       description:
-        "Logs, newest first, with severity, service, body, attributes, and trace and span IDs. " +
-        SEARCH_HELP,
-      inputSchema: {
-        search: z.string().default(""),
-        min_severity: z.enum(["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"]).optional(),
-        trace_id: z.string().optional(),
-        span_id: z.string().optional(),
+        "Logs, newest first, with severity, service, body, attributes, and trace and span IDs.",
+      inputSchema: z.strictObject({
+        search: Search,
+        min_severity: z
+          .enum(["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"])
+          .optional()
+          .describe("Only logs at this severity or above"),
+        trace_id: z.string().optional().describe("Only logs from this trace"),
+        span_id: z.string().optional().describe("Only logs from this span"),
         limit: Limit,
-      },
+      }),
       annotations: READ_ONLY,
     },
     async ({ search, min_severity, trace_id, span_id, limit }) => {
@@ -416,8 +485,12 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
         spanId: span_id,
         timeRange: undefined,
       };
-      const logs = await readLogList(connection, query, limit);
-      return jsonResult(logs.map((log) => logSummary(log)));
+      const logs = await readLogList(connection, query, limit + 1);
+      return listResult(
+        logs.map((log) => logSummary(log)),
+        limit,
+        "logs",
+      );
     },
   );
 }

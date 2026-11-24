@@ -23,19 +23,34 @@ export async function startTestMcp(
   const transport = new StreamableHTTPClientTransport(new URL(server.url));
   await client.connect(transport);
 
-  async function callText(name: string, args: Record<string, unknown> = {}) {
+  async function call(name: string, args: Record<string, unknown> = {}) {
     const result = await client.callTool({ name, arguments: args });
     const texts = result.content.flatMap((item) => (item.type === "text" ? [item.text] : []));
+    return { isError: result.isError === true, texts };
+  }
+
+  async function callOk(name: string, args: Record<string, unknown>) {
+    const { isError, texts } = await call(name, args);
+    if (isError) {
+      throw new Error(`${name} failed: ${texts.join("\n")}`);
+    }
+    return texts;
+  }
+
+  async function callText(name: string, args: Record<string, unknown> = {}) {
+    const texts = await callOk(name, args);
     return texts.join("\n");
   }
 
   async function callJson(name: string, args: Record<string, unknown> = {}): Promise<unknown> {
-    return JSON.parse(await callText(name, args));
+    const [json = ""] = await callOk(name, args);
+    return JSON.parse(json);
   }
 
   return {
     url: server.url,
     client,
+    call,
     callText,
     callJson,
     async [Symbol.asyncDispose]() {
