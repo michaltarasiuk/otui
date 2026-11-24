@@ -1,6 +1,12 @@
 import type { DuckDBConnection } from "@duckdb/node-api";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  createMcpHandler,
+  hostHeaderValidationResponse,
+  localhostAllowedHostnames,
+  localhostAllowedOrigins,
+  McpServer,
+  originValidationResponse,
+} from "@modelcontextprotocol/server";
 import dedent from "dedent";
 
 import { LOOPBACK_HOST } from "#utils/loopback.ts";
@@ -15,23 +21,17 @@ interface McpServerOptions {
 }
 
 export function startMcpServer({ connection, port, version }: McpServerOptions) {
-  const allowedHosts = [`${LOOPBACK_HOST}:${port}`, `localhost:${port}`];
-
-  async function respond(request: Request) {
+  const handler = createMcpHandler(() => {
     const server = new McpServer({ name: "otui", version });
     registerTools(server, connection);
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      enableJsonResponse: true,
-      enableDnsRebindingProtection: true,
-      allowedHosts,
-      allowedOrigins: allowedHosts.map((host) => `http://${host}`),
-    });
-    await server.connect(transport);
-    try {
-      return await transport.handleRequest(request);
-    } finally {
-      await server.close();
-    }
+    return server;
+  });
+
+  function respond(request: Request) {
+    const rejected =
+      hostHeaderValidationResponse(request, localhostAllowedHostnames()) ??
+      originValidationResponse(request, localhostAllowedOrigins());
+    return rejected ?? handler.fetch(request);
   }
 
   try {
@@ -43,7 +43,10 @@ export function startMcpServer({ connection, port, version }: McpServerOptions) 
     });
     return {
       url: `http://${LOOPBACK_HOST}:${port}/mcp`,
-      [Symbol.asyncDispose]: () => httpServer.stop(true),
+      async [Symbol.asyncDispose]() {
+        await handler.close();
+        await httpServer.stop(true);
+      },
     };
   } catch (error) {
     throw new StartupError(

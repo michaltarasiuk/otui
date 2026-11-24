@@ -1,6 +1,8 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+  type VersionNegotiationMode,
+} from "@modelcontextprotocol/client";
 
 import { startMcpServer } from "#mcp/mcp-server.ts";
 
@@ -9,20 +11,22 @@ import type { TestReceiver } from "./receiver.ts";
 
 const VERSION = "0.0.0";
 
-export async function startTestMcp(receiver: TestReceiver) {
+export async function startTestMcp(
+  receiver: TestReceiver,
+  mode: VersionNegotiationMode = { pin: "2026-07-28" },
+) {
   const connection = await receiver.connect();
   const server = startMcpServer({ connection, port: freePort(), version: VERSION });
 
-  const client = new Client({ name: "test", version: VERSION });
-  await client.connect(new StreamableHTTPClientTransport(new URL(server.url)));
+  const versionNegotiation = { mode };
+  const client = new Client({ name: "test", version: VERSION }, { versionNegotiation });
+  const transport = new StreamableHTTPClientTransport(new URL(server.url));
+  await client.connect(transport);
 
   async function callText(name: string, args: Record<string, unknown> = {}) {
     const result = await client.callTool({ name, arguments: args });
-    const { content } = CallToolResultSchema.parse(result);
-    return content
-      .filter((item) => item.type === "text")
-      .map((item) => item.text)
-      .join("\n");
+    const texts = result.content.flatMap((item) => (item.type === "text" ? [item.text] : []));
+    return texts.join("\n");
   }
 
   async function callJson(name: string, args: Record<string, unknown> = {}): Promise<unknown> {

@@ -40,6 +40,16 @@ test("lists read-only tools for each view", async () => {
   expect(tools.every((tool) => tool.annotations?.readOnlyHint === true)).toBe(true);
 });
 
+test("serves clients of the 2025 protocol", async () => {
+  await using receiver = await startTestReceiver();
+  await receiver.sendHttp("/v1/traces", otlpTraces);
+  await using mcp = await startTestMcp(receiver, "legacy");
+
+  const outline = await mcp.callText("get_trace", { trace_id: singleTraceId });
+
+  expect(outline).toStartWith(`trace ${singleTraceId}: `);
+});
+
 test("lists traces with the same search as the app", async () => {
   await using receiver = await startTestReceiver();
   await receiver.sendHttp("/v1/traces", otlpTraces);
