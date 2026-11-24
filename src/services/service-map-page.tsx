@@ -9,10 +9,10 @@ import { Placeholder } from "#ui/placeholder.tsx";
 import { useSelection } from "#ui/use-selection.ts";
 import { formatCount } from "#utils/number.ts";
 
-import { SERVICE_WINDOW_LABEL } from "./read-services.ts";
 import { ServiceMapTable } from "./service-map-table.tsx";
 import { serviceMap } from "./service-map.ts";
 import { serviceCallsQuery } from "./service-queries.ts";
+import { SERVICE_WINDOW_LABEL } from "./service.ts";
 
 interface ServiceMapPageProps {
   onOpenTraces: (service: string) => void;

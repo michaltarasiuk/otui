@@ -19,11 +19,10 @@ import { useSelection } from "#ui/use-selection.ts";
 import { formatCount } from "#utils/number.ts";
 
 import { OperationTable } from "./operation-table.tsx";
-import { SERVICE_WINDOW_LABEL } from "./read-services.ts";
 import { ServiceDetails } from "./service-details.tsx";
 import { serviceListQuery, serviceOperationsQuery } from "./service-queries.ts";
 import { ServiceTable } from "./service-table.tsx";
-import { SERVICE_SORT_COLUMNS, type ServiceSort } from "./service.ts";
+import { SERVICE_SORT_COLUMNS, SERVICE_WINDOW_LABEL, type ServiceSort } from "./service.ts";
 
 const BUSIEST_FIRST: ServiceSort = { column: "rate", descending: true };
 

@@ -5,13 +5,8 @@ import serviceList from "#services/sql/service-list.sql" with { type: "text" };
 import serviceOperations from "#services/sql/service-operations.sql" with { type: "text" };
 import { substringPattern } from "#telemetry/substring-pattern.ts";
 import { sortParams } from "#utils/sort.ts";
-import { MINUTE_MS } from "#utils/time.ts";
 
-import { Call, Operation, Service, type ServiceSort } from "./service.ts";
-
-export const SERVICE_WINDOW_MS = 5 * MINUTE_MS;
-
-export const SERVICE_WINDOW_LABEL = `last ${SERVICE_WINDOW_MS / MINUTE_MS} min`;
+import { Call, Operation, SERVICE_WINDOW_MS, Service, type ServiceSort } from "./service.ts";
 
 const OPERATION_LIMIT = 50;
 

@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import type { Sort } from "#utils/sort.ts";
+import { MINUTE_MS } from "#utils/time.ts";
+
+export const SERVICE_WINDOW_MS = 5 * MINUTE_MS;
+
+export const SERVICE_WINDOW_LABEL = `last ${SERVICE_WINDOW_MS / MINUTE_MS} min`;
 
 export const SERVICE_SORT_COLUMNS = ["rate", "error_ratio", "p95_ms"] as const;
 type ServiceSortColumn = (typeof SERVICE_SORT_COLUMNS)[number];
