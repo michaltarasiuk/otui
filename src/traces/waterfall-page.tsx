@@ -105,7 +105,9 @@ export function WaterfallPage({
     stepToMatch(spans.indexOf(selected) - 1, 1);
   }
 
-  const spanContent = useQuery(spanContentQuery(connection, traceId, deferredSelected?.span_id));
+  const selectedSpanId = deferredSelected?.span_id;
+  const spanContentOptions = spanContentQuery(connection, traceId, selectedSpanId);
+  const spanContent = useQuery({ ...spanContentOptions, enabled: selectedSpanId !== undefined });
   const links = spanContent.data?.links ?? [];
   const linkSelection = useSelection(links, (link) => link.span_id);
   const link = linkSelection.selected;
