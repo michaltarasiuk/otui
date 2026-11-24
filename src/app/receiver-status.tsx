@@ -2,7 +2,6 @@ import type { DuckDBConnection } from "@duckdb/node-api";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import { useConnection } from "#query/connection.ts";
-import { POLL_INTERVAL_MS } from "#query/polling.ts";
 import { type ReceiverCounters, readReceiverCounters } from "#receiver/receiver-counters.ts";
 import { usePaused } from "#ui/pause.tsx";
 import { THEME } from "#ui/theme.ts";
@@ -13,7 +12,6 @@ function receiverCountersQuery(connection: DuckDBConnection, listenUrl: string) 
   return queryOptions({
     queryKey: ["receiver-counters", listenUrl],
     queryFn: () => readReceiverCounters(connection, listenUrl),
-    refetchInterval: POLL_INTERVAL_MS,
   });
 }
 

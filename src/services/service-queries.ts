@@ -1,8 +1,6 @@
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { queryOptions } from "@tanstack/react-query";
 
-import { POLL_INTERVAL_MS } from "#query/polling.ts";
-
 import {
   readServiceCalls,
   readServiceList,
@@ -14,7 +12,6 @@ export function serviceListQuery(connection: DuckDBConnection, query: ServiceQue
   return queryOptions({
     queryKey: ["services", query],
     queryFn: () => readServiceList(connection, query),
-    refetchInterval: POLL_INTERVAL_MS,
   });
 }
 
@@ -26,8 +23,6 @@ export function serviceOperationsQuery(
     queryKey: ["services", serviceName, "operations"],
     queryFn: () =>
       serviceName === undefined ? [] : readServiceOperations(connection, serviceName),
-    refetchInterval: POLL_INTERVAL_MS,
-    staleTime: POLL_INTERVAL_MS,
   });
 }
 
@@ -35,6 +30,5 @@ export function serviceCallsQuery(connection: DuckDBConnection) {
   return queryOptions({
     queryKey: ["services", "calls"],
     queryFn: () => readServiceCalls(connection),
-    refetchInterval: POLL_INTERVAL_MS,
   });
 }

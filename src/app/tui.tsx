@@ -23,6 +23,7 @@ import {
 import { StrictMode } from "react";
 
 import { ConnectionContext } from "#query/connection.ts";
+import { POLL_INTERVAL_MS } from "#query/polling.ts";
 import { ClipboardContext } from "#ui/clipboard.tsx";
 
 import { App } from "./app.tsx";
@@ -32,7 +33,14 @@ const FOCUS_CONTROLLED_BY_APP = true;
 export const RENDERER_CONFIG = { autoFocus: !FOCUS_CONTROLLED_BY_APP } satisfies CliRendererConfig;
 
 export const QUERY_CLIENT_CONFIG = {
-  defaultOptions: { queries: { retry: false } },
+  defaultOptions: {
+    queries: {
+      networkMode: "always",
+      retry: false,
+      refetchInterval: POLL_INTERVAL_MS,
+      staleTime: POLL_INTERVAL_MS,
+    },
+  },
 } satisfies QueryClientConfig;
 
 function enableRefetchWithoutWindow() {
