@@ -25,8 +25,8 @@ export async function readServiceList(
 ) {
   const reader = await connection.runAndReadAll(serviceList, {
     ...windowParams(),
-    pattern: substringPattern(search),
     ...sortParams(sort),
+    pattern: substringPattern(search),
   });
   return Service.array().parse(reader.getRowObjectsJS());
 }

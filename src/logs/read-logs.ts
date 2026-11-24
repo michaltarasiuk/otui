@@ -6,9 +6,10 @@ import logList from "#logs/sql/log-list.sql" with { type: "text" };
 import logTimeline from "#logs/sql/log-timeline.sql" with { type: "text" };
 import { searchParams } from "#telemetry/search.ts";
 import {
+  bucketParams,
   bucketStart,
-  TIME_BUCKET_MS,
   TimeBucket,
+  timeRangeParams,
   type TimeRange,
 } from "#telemetry/time-buckets.ts";
 
@@ -44,10 +45,9 @@ export async function readLogList(
   limit: number,
 ) {
   const reader = await connection.runAndReadAll(logList, {
-    limit,
     ...filterParams(filter),
-    minTimeMs: timeRange?.from ?? null,
-    maxTimeMs: timeRange?.to ?? null,
+    ...timeRangeParams(timeRange),
+    limit,
   });
   return Log.array().parse(reader.getRowObjectsJS());
 }
@@ -56,9 +56,8 @@ export async function readLogTimeline(connection: DuckDBConnection, filter: LogF
   const newestBucketMs = bucketStart(Date.now());
   const reader = await connection.runAndReadAll(logTimeline, {
     ...filterParams(filter),
+    ...bucketParams(newestBucketMs),
     errorSeverityNumber: lowestSeverityNumber("ERROR"),
-    bucketMs: TIME_BUCKET_MS,
-    endMs: newestBucketMs + TIME_BUCKET_MS,
   });
   return { newestBucketMs, occupied: TimeBucket.array().parse(reader.getRowObjectsJS()) };
 }

@@ -46,11 +46,11 @@ export async function readMetricList(
   limit: number,
 ) {
   const reader = await connection.runAndReadAll(metricList, {
-    limit,
     ...searchParams(search),
+    ...sortParams(sort),
+    limit,
     name: null,
     serviceName: null,
-    ...sortParams(sort),
   });
   return Metric.array().parse(reader.getRowObjectsJS());
 }
@@ -61,11 +61,11 @@ export async function readNamedMetrics(
   serviceName: string | undefined,
 ) {
   const reader = await connection.runAndReadAll(metricList, {
-    limit: null,
     ...searchParams(""),
+    ...sortParams(BY_NAME),
+    limit: null,
     name,
     serviceName: serviceName ?? null,
-    ...sortParams(BY_NAME),
   });
   return Metric.array().parse(reader.getRowObjectsJS());
 }

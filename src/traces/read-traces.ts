@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { searchParams } from "#telemetry/search.ts";
 import {
+  bucketParams,
   bucketStart,
-  TIME_BUCKET_MS,
   TimeBucket,
+  timeRangeParams,
   type TimeRange,
 } from "#telemetry/time-buckets.ts";
 import spanContent from "#traces/sql/span-content.sql" with { type: "text" };
@@ -48,11 +49,10 @@ export async function readTraceList(
   limit: number,
 ) {
   const reader = await connection.runAndReadAll(traceList, {
-    limit,
     ...filterParams(filter),
-    minTimeMs: timeRange?.from ?? null,
-    maxTimeMs: timeRange?.to ?? null,
+    ...timeRangeParams(timeRange),
     ...sortParams(sort),
+    limit,
   });
   return Trace.array().parse(reader.getRowObjectsJS());
 }
@@ -61,8 +61,7 @@ export async function readTraceTimeline(connection: DuckDBConnection, filter: Tr
   const newestBucketMs = bucketStart(Date.now());
   const reader = await connection.runAndReadAll(traceTimeline, {
     ...filterParams(filter),
-    bucketMs: TIME_BUCKET_MS,
-    endMs: newestBucketMs + TIME_BUCKET_MS,
+    ...bucketParams(newestBucketMs),
   });
   return { newestBucketMs, occupied: TimeBucket.array().parse(reader.getRowObjectsJS()) };
 }
@@ -82,7 +81,7 @@ export async function readSpanMatches(
   traceId: string,
   search: string,
 ) {
-  const reader = await connection.runAndReadAll(spanMatches, { traceId, ...searchParams(search) });
+  const reader = await connection.runAndReadAll(spanMatches, { ...searchParams(search), traceId });
   const rows = SpanMatch.array().parse(reader.getRowObjectsJS());
   return new Set(rows.map((row) => row.span_id));
 }

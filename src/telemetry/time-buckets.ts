@@ -22,3 +22,11 @@ export type TimeBucket = z.infer<typeof TimeBucket>;
 export function bucketStart(timeMs: number) {
   return Math.floor(timeMs / TIME_BUCKET_MS) * TIME_BUCKET_MS;
 }
+
+export function timeRangeParams(timeRange: TimeRange | undefined) {
+  return { minTimeMs: timeRange?.from ?? null, maxTimeMs: timeRange?.to ?? null };
+}
+
+export function bucketParams(newestBucketMs: number) {
+  return { bucketMs: TIME_BUCKET_MS, endMs: newestBucketMs + TIME_BUCKET_MS };
+}
