@@ -23,5 +23,5 @@
     "target": "ESNext",
     "skipLibCheck": true
   },
-  "include": ["src", "scripts", "oxlint.config.ts"]
+  "include": ["src", "scripts", "*.ts"]
 }
