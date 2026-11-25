@@ -16,7 +16,7 @@ import { SearchKeys } from "#ui/search-keys.tsx";
 import { Split } from "#ui/split.tsx";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
-import { findNextIndex, type Step } from "#utils/cycle.ts";
+import { around } from "#utils/cycle.ts";
 import { isDefined } from "#utils/is-defined.ts";
 import { toggle } from "#utils/set.ts";
 
@@ -32,7 +32,7 @@ import {
   visibleSpans,
 } from "./span-tree.ts";
 import { SpanWaterfall } from "./span-waterfall.tsx";
-import type { SpanLink } from "./span.ts";
+import type { Span, SpanLink } from "./span.ts";
 import { TraceHeader } from "./trace-header.tsx";
 import { spanContentQuery, spanMatchesQuery, traceSpansQuery } from "./trace-queries.ts";
 import type { MarkedTrace } from "./trace.ts";
@@ -91,12 +91,8 @@ export function WaterfallPage({
     selection.select(spanId);
   }
 
-  function stepToMatch(index: number, step: Step) {
-    if (!isDefined(matches) || matches.size === 0) {
-      return;
-    }
-    const next = findNextIndex(spans, index, step, (span) => matches.has(span.span_id));
-    const match = spans[next];
+  function selectFirstMatch(candidates: Span[]) {
+    const match = candidates.find((span) => matches?.has(span.span_id) === true);
     if (isDefined(match)) {
       selectSpan(match.span_id);
     }
@@ -104,7 +100,7 @@ export function WaterfallPage({
 
   if (jumping && search.deferredText === search.text && isDefined(selected)) {
     setJumping(false);
-    stepToMatch(spans.indexOf(selected) - 1, 1);
+    selectFirstMatch([selected, ...around(spans, selected, 1)]);
   }
 
   const selectedSpanId = deferredSelected?.span_id;
@@ -206,7 +202,7 @@ export function WaterfallPage({
                     forward="n"
                     backward="shift+n"
                     backwardDescription="previous match"
-                    onStep={(step) => stepToMatch(spans.indexOf(selected), step)}
+                    onStep={(step) => selectFirstMatch(around(spans, selected, step))}
                   >
                     next match
                   </StepKeys>

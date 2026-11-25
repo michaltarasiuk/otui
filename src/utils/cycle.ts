@@ -1,29 +1,12 @@
 export type Step = 1 | -1;
 
-function wrap(index: number, length: number) {
-  return ((index % length) + length) % length;
+export function around<T>(items: readonly T[], item: T, step: Step) {
+  const ordered = step === 1 ? items : items.toReversed();
+  const index = ordered.indexOf(item);
+  return [...ordered.slice(index + 1), ...ordered.slice(0, index + 1)];
 }
 
 export function cycle<T>(items: readonly [T, ...T[]], item: T, step: Step) {
-  const index = items.indexOf(item);
-  const entry = step === 1 ? -1 : items.length;
-  const from = index === -1 ? entry : index;
-  // wrap keeps the index inside the non-empty list
-  return items[wrap(from + step, items.length)] as T;
-}
-
-export function findNextIndex<T>(
-  items: readonly T[],
-  index: number,
-  step: Step,
-  match: (item: T) => boolean,
-) {
-  for (let offset = 1; offset <= items.length; offset++) {
-    const next = wrap(index + step * offset, items.length);
-    // wrap keeps the index inside the list
-    if (match(items[next] as T)) {
-      return next;
-    }
-  }
-  return index;
+  const [next] = around(items, item, step);
+  return next as T;
 }

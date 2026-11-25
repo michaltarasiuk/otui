@@ -124,7 +124,7 @@ test("selects nothing in an empty list and the first item once items arrive", as
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("none (0)"));
+  await screen.waitForFrame(shows("none (-1)"));
   screen.mockInput.pressKey("j");
   screen.mockInput.pressKey("e");
 

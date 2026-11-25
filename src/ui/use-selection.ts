@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { findNextIndex, type Step } from "#utils/cycle.ts";
+import { around, type Step } from "#utils/cycle.ts";
 import { isDefined } from "#utils/is-defined.ts";
 import { clamp } from "#utils/number.ts";
 
@@ -11,28 +11,30 @@ export function useSelection<T>(
 ) {
   const [selectedKey, setSelectedKey] = useState(initialKey);
 
-  function indexOf(key: string | undefined) {
-    const index = items.findIndex((item) => keyOf(item) === key);
-    return Math.max(index, 0);
+  function itemOf(key: string | undefined) {
+    return items.find((item) => keyOf(item) === key) ?? items[0];
   }
 
-  function keyAt(index: number) {
-    const item = items[clamp(index, 0, items.length - 1)];
-    return isDefined(item) ? keyOf(item) : undefined;
+  function moveFrom(next: (current: T) => T | undefined) {
+    setSelectedKey((key) => {
+      const current = itemOf(key);
+      const item = isDefined(current) ? next(current) : undefined;
+      return isDefined(item) ? keyOf(item) : key;
+    });
   }
 
-  const selectedIndex = indexOf(selectedKey);
+  const selected = itemOf(selectedKey);
 
   return {
     items,
-    index: selectedIndex,
-    selected: items[selectedIndex],
+    index: isDefined(selected) ? items.indexOf(selected) : -1,
+    selected,
     keyOf,
     move(offset: number) {
-      setSelectedKey((key) => keyAt(indexOf(key) + offset) ?? key);
+      moveFrom((current) => items[clamp(items.indexOf(current) + offset, 0, items.length - 1)]);
     },
     jump(step: Step, match: (item: T) => boolean) {
-      setSelectedKey((key) => keyAt(findNextIndex(items, indexOf(key), step, match)) ?? key);
+      moveFrom((current) => around(items, current, step).find((item) => match(item)));
     },
     select(key: string) {
       setSelectedKey(key);
