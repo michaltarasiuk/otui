@@ -29,6 +29,6 @@ commit-msg:
     conventional:
       run: |
         head -n 1 {1} | grep -qE '^(feat|fix|refactor|test|docs|chore): [a-z].*[^.]$' || {
-          echo "Commit subject must follow AGENTS.md: '<type>: <lowercase subject>' without a scope or trailing period"
+          echo "Commit subject must be '<type>: <lowercase subject>' (feat, fix, refactor, test, docs, chore), without a scope or trailing period"
           exit 1
         }
