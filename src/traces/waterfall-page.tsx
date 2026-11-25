@@ -210,7 +210,7 @@ export function WaterfallPage({
                 {shown.some((span) => span.is_error) && (
                   <ErrorKeys onStep={(step) => selection.jump(step, (span) => span.is_error)} />
                 )}
-                {descendantCount(spans, spans.indexOf(selected)) > 0 && (
+                {descendantCount(spans, selected) > 0 && (
                   <Key
                     name="space"
                     description={

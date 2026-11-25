@@ -46,9 +46,11 @@ function ids(spans: Span[]) {
 }
 
 test("counts every span nested under a span", () => {
-  expect(descendantCount(SPANS, 0)).toBe(3);
-  expect(descendantCount(SPANS, 1)).toBe(1);
-  expect(descendantCount(SPANS, 3)).toBe(0);
+  const [root, a, , b] = SPANS;
+
+  expect(descendantCount(SPANS, root!)).toBe(3);
+  expect(descendantCount(SPANS, a!)).toBe(1);
+  expect(descendantCount(SPANS, b!)).toBe(0);
 });
 
 test("counts the spans hidden under each collapsed span", () => {

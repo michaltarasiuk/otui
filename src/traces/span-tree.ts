@@ -33,26 +33,18 @@ export function selfTimes(spans: Span[]) {
   );
 }
 
-export function descendantCount(spans: Span[], index: number) {
-  const depth = spans[index]?.depth ?? 0;
-  let count = 0;
-  for (const span of spans.slice(index + 1)) {
-    if (span.depth <= depth) {
-      break;
-    }
-    count++;
-  }
-  return count;
+export function descendantCount(spans: Span[], span: Span) {
+  const after = spans.slice(spans.indexOf(span) + 1);
+  const end = after.findIndex((other) => other.depth <= span.depth);
+  return end === -1 ? after.length : end;
 }
 
 export function hiddenCounts(spans: Span[], collapsed: ReadonlySet<string>) {
-  const counts = new Map<string, number>();
-  for (const [index, span] of spans.entries()) {
-    if (collapsed.has(span.span_id)) {
-      counts.set(span.span_id, descendantCount(spans, index));
-    }
-  }
-  return counts;
+  return new Map(
+    spans
+      .filter((span) => collapsed.has(span.span_id))
+      .map((span) => [span.span_id, descendantCount(spans, span)]),
+  );
 }
 
 export function visibleSpans(spans: Span[], collapsed: ReadonlySet<string>) {
