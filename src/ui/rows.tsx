@@ -135,8 +135,7 @@ interface SelectableProps<T> {
 export function Selectable<T>({ selection, item, children }: SelectableProps<T>) {
   const { requestFocus } = useFocus();
 
-  const key = selection.keyOf(item);
-  const selected = isDefined(selection.selected) && selection.keyOf(selection.selected) === key;
+  const selected = selection.selected === item;
 
   return (
     <box
@@ -144,7 +143,7 @@ export function Selectable<T>({ selection, item, children }: SelectableProps<T>)
       onMouseDown={(event) => {
         if (event.button === MouseButton.LEFT) {
           requestFocus();
-          selection.select(key);
+          selection.select(selection.keyOf(item));
         }
       }}
     >
