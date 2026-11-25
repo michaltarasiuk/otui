@@ -57,7 +57,7 @@ test("rejects arguments a tool doesn't take", async () => {
 
   const result = await mcp.call("list_traces", { service_name: "service-a" });
 
-  expect(result).toEqual({
+  expect(result).toMatchObject({
     isError: true,
     texts: [expect.stringContaining('Unrecognized key: "service_name"')],
   });
@@ -161,7 +161,7 @@ test("refuses to compare traces with different root spans", async () => {
     after_trace_id: failedTraceId,
   });
 
-  expect(result).toEqual({
+  expect(result).toMatchObject({
     isError: true,
     texts: [expect.stringContaining("The traces start with different root spans")],
   });

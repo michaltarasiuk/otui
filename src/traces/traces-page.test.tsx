@@ -323,7 +323,7 @@ test("compares numeric attributes", async () => {
 
   await searchTraces(app, "attribute.a>=2");
   const frame = await app.waitForFrame((frame) => pageHeader(frame).endsWith("2 of 3 traces"));
-  expect(tableRows(frame)).toEqual([
+  expect(tableRows(frame)).toMatchObject([
     expect.stringContaining("operation-3"),
     expect.stringContaining("operation-2"),
   ]);

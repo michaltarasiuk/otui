@@ -43,9 +43,9 @@ export async function renderApp(
   const screen = await render(
     <QueryProvider queryClient={queryClient} connection={connection ?? (await receiver.connect())}>
       <ClipboardContext
-        value={async (text) => {
+        value={(text) => {
           copied.push(text);
-          return true;
+          return Promise.resolve(true);
         }}
       >
         <App

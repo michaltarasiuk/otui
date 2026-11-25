@@ -128,7 +128,9 @@ async function rowCounts(connection: DuckDBConnection) {
       (table) => `SELECT '${table}' AS name, count(*)::INTEGER AS rows FROM ${table}`,
     ).join(" UNION ALL "),
   );
-  return Object.fromEntries(reader.getRowObjectsJS().map(({ name, rows }) => [name, rows]));
+  return z
+    .record(z.string(), z.number())
+    .parse(Object.fromEntries(reader.getRowObjectsJS().map(({ name, rows }) => [name, rows])));
 }
 
 async function tableMemoryBytes(connection: DuckDBConnection) {
