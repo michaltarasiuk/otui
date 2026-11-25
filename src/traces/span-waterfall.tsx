@@ -8,7 +8,7 @@ import { indent } from "#utils/text.ts";
 import { formatDuration } from "#utils/time.ts";
 
 import type { Span } from "./span.ts";
-import { Scale, WaterfallBar } from "./waterfall-bar.tsx";
+import { WaterfallBar, WaterfallScale } from "./waterfall-bar.tsx";
 
 const COLUMN_NAME_GROW = 2;
 const COLUMN_DURATION_WIDTH = 8;
@@ -48,7 +48,7 @@ export function SpanWaterfall({
         <Column width={COLUMN_DURATION_WIDTH} align="right">
           Duration
         </Column>
-        <Scale grow={COLUMN_TIMELINE_GROW} durationMs={traceDurationMs} />
+        <WaterfallScale grow={COLUMN_TIMELINE_GROW} durationMs={traceDurationMs} />
       </TableHeader>
       <Rows items={spans} selection={selection}>
         {(span) => {

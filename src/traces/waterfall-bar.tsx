@@ -14,12 +14,12 @@ function barColor(span: Span) {
   return span.service_name === null ? THEME.textMuted : serviceColor(span.service_name);
 }
 
-interface ScaleProps {
+interface WaterfallScaleProps {
   grow: number;
   durationMs: number;
 }
 
-export function Scale({ grow, durationMs }: ScaleProps) {
+export function WaterfallScale({ grow, durationMs }: WaterfallScaleProps) {
   return (
     <box flexDirection="row" justifyContent="space-between" flexGrow={grow} flexBasis={0}>
       <text fg={THEME.textMuted} attributes={TextAttributes.BOLD}>
