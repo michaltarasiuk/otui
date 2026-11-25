@@ -13,7 +13,7 @@ export function RangeKeys({ timeRange, occupied }: RangeKeysProps) {
     <StepKeys
       forward="right"
       backward="left"
-      description="later range"
+      forwardDescription="later range"
       backwardDescription="earlier range"
       onStep={(step) => timeRange.step(occupied, step)}
     >

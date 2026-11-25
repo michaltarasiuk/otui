@@ -67,7 +67,7 @@ interface StepKeysProps {
   forward: string;
   backward: string;
   priority?: number | undefined;
-  description?: string | undefined;
+  forwardDescription?: string | undefined;
   backwardDescription: string;
   onStep: (step: Step) => void;
   children?: string | undefined;
@@ -77,14 +77,19 @@ export function StepKeys({
   forward,
   backward,
   priority,
-  description,
+  forwardDescription,
   backwardDescription,
   onStep,
   children,
 }: StepKeysProps) {
   return (
     <>
-      <Key name={forward} priority={priority} description={description} onPress={() => onStep(1)}>
+      <Key
+        name={forward}
+        priority={priority}
+        description={forwardDescription}
+        onPress={() => onStep(1)}
+      >
         {children}
       </Key>
       <Key
@@ -99,16 +104,20 @@ export function StepKeys({
 
 interface ListKeysProps<T> {
   selection: Selection<T>;
-  description: string;
+  forwardDescription: string;
   backwardDescription: string;
 }
 
-export function ListKeys<T>({ selection, description, backwardDescription }: ListKeysProps<T>) {
+export function ListKeys<T>({
+  selection,
+  forwardDescription,
+  backwardDescription,
+}: ListKeysProps<T>) {
   return (
     <>
-      <Key name="down" description={description} onPress={() => selection.move(1)} />
+      <Key name="down" description={forwardDescription} onPress={() => selection.move(1)} />
       <Key name="up" description={backwardDescription} onPress={() => selection.move(-1)} />
-      <Key name="j" description={description} onPress={() => selection.move(1)} />
+      <Key name="j" description={forwardDescription} onPress={() => selection.move(1)} />
       <Key name="k" description={backwardDescription} onPress={() => selection.move(-1)} />
     </>
   );

@@ -111,7 +111,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
         <FocusScope focused={region === "exemplars"}>
           <ListKeys
             selection={exemplarSelection}
-            description="next exemplar"
+            forwardDescription="next exemplar"
             backwardDescription="previous exemplar"
           />
           {isDefined(exemplarTraceId) && (
@@ -128,7 +128,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
             <StepKeys
               forward="w"
               backward="shift+w"
-              description="narrow the chart to a shorter window"
+              forwardDescription="narrow the chart to a shorter window"
               backwardDescription="widen the chart window"
               onStep={(step) => setChartWindow((window) => cycle(CHART_WINDOWS, window, step))}
             >

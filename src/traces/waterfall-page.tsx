@@ -239,7 +239,7 @@ export function WaterfallPage({
           <FocusScope focused={region === "links"}>
             <ListKeys
               selection={linkSelection}
-              description="next link"
+              forwardDescription="next link"
               backwardDescription="previous link"
             />
             {isDefined(link) && canOpenLink(link, traceId, spans) && (

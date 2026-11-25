@@ -39,7 +39,7 @@ export function RegionKeys<T>({ regions, region, onChange, children }: RegionKey
       forward="tab"
       backward="shift+tab"
       priority={depth}
-      description="next region"
+      forwardDescription="next region"
       backwardDescription="previous region"
       onStep={(next) => step(next)}
     >

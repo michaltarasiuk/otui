@@ -123,7 +123,7 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
           <JumpKeys
             forward="e"
             backward="shift+e"
-            description="next added or removed span"
+            forwardDescription="next added or removed span"
             backwardDescription="previous added or removed span"
             selection={selection}
             match={(row) => isAddedOrRemoved(row)}
