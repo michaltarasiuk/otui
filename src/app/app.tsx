@@ -13,7 +13,7 @@ import { TracesPage } from "#traces/traces-page.tsx";
 import { WaterfallPage } from "#traces/waterfall-page.tsx";
 import { ErrorBoundary } from "#ui/error-boundary.tsx";
 import { FocusScope, KeysScope } from "#ui/focus.tsx";
-import { AppKeys, Key } from "#ui/key-hints.tsx";
+import { AppKeysContext, Key } from "#ui/key-hints.tsx";
 import { RegionKeys, useRegion } from "#ui/region.tsx";
 import { cycle } from "#utils/cycle.ts";
 
@@ -89,7 +89,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
   );
 
   return (
-    <AppKeys value={keys}>
+    <AppKeysContext value={keys}>
       <Window>
         <KeysScope enabled={help === undefined}>
           <TopBar>
@@ -231,6 +231,6 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
         </KeysScope>
         {help !== undefined && <Help entries={help} onClose={() => setHelp(undefined)} />}
       </Window>
-    </AppKeys>
+    </AppKeysContext>
   );
 }

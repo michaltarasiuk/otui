@@ -10,7 +10,7 @@ import { THEME } from "./theme.ts";
 
 export const KEY_HINTS_HEIGHT = 1;
 
-export const AppKeys = createContext<React.ReactNode>(null);
+export const AppKeysContext = createContext<React.ReactNode>(null);
 
 interface KeyHintsProps {
   children?: React.ReactNode;
@@ -20,7 +20,7 @@ export function KeyHints({ children }: KeyHintsProps) {
   return (
     <box flexDirection="row" gap={COLUMN_GAP} paddingX={1} marginTop="auto" overflow="hidden">
       {children}
-      <FocusRoot>{use(AppKeys)}</FocusRoot>
+      <FocusRoot>{use(AppKeysContext)}</FocusRoot>
     </box>
   );
 }
