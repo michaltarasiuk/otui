@@ -29,7 +29,7 @@ interface KeyProps {
   name: string;
   priority?: number | undefined;
   description?: string | undefined;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   children?: string | undefined;
 }
 
