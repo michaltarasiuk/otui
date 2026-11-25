@@ -11,11 +11,19 @@ export function useSelection<T>(
 ) {
   const [selectedKey, setSelectedKey] = useState(initialKey);
 
-  function itemOf(key: string | undefined) {
+  function findSelected(key: string | undefined) {
     return items.find((item) => keyOf(item) === key) ?? items[0];
   }
 
-  const selected = itemOf(selectedKey);
+  function setSelected(update: (prevSelected: T) => T | undefined) {
+    setSelectedKey((prevKey) => {
+      const prevSelected = findSelected(prevKey);
+      const nextSelected = isDefined(prevSelected) ? update(prevSelected) : undefined;
+      return isDefined(nextSelected) ? keyOf(nextSelected) : prevKey;
+    });
+  }
+
+  const selected = findSelected(selectedKey);
 
   return {
     items,
@@ -23,24 +31,10 @@ export function useSelection<T>(
     selected,
     keyOf,
     move(offset: number) {
-      setSelectedKey((key) => {
-        const current = itemOf(key);
-        if (!isDefined(current)) {
-          return key;
-        }
-        const index = clamp(items.indexOf(current) + offset, 0, items.length - 1);
-        return keyOf(items[index] ?? current);
-      });
+      setSelected((prev) => items[clamp(items.indexOf(prev) + offset, 0, items.length - 1)]);
     },
     jump(step: Step, match: (item: T) => boolean) {
-      setSelectedKey((key) => {
-        const current = itemOf(key);
-        if (!isDefined(current)) {
-          return key;
-        }
-        const next = around(items, current, step).find((item) => match(item));
-        return isDefined(next) ? keyOf(next) : key;
-      });
+      setSelected((prev) => around(items, prev, step).find((item) => match(item)));
     },
     select(key: string) {
       setSelectedKey(key);
