@@ -35,8 +35,8 @@ export function LinkList({ traceId, selection }: LinkListProps) {
 
   return (
     <Section title="Links">
-      {selection.items.map((link, index) => (
-        <Selectable key={link.span_id} selection={selection} index={index}>
+      {selection.items.map((link) => (
+        <Selectable key={link.span_id} selection={selection} item={link}>
           <Row>
             <Cell grow={1} muted={!link.has_trace}>
               {linkLabel(link, traceId)}

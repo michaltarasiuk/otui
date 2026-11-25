@@ -46,8 +46,8 @@ export function ExemplarList({ metric, seriesId, selection }: ExemplarListProps)
 
   return (
     <Section title="Exemplars">
-      {exemplars.map((exemplar, index) => (
-        <Selectable key={exemplar.exemplar_id} selection={selection} index={index}>
+      {exemplars.map((exemplar) => (
+        <Selectable key={exemplar.exemplar_id} selection={selection} item={exemplar}>
           <Row>
             <Cell width={COLUMN_TIME_WIDTH} muted>
               {formatTime(exemplar.time)}

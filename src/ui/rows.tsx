@@ -110,12 +110,8 @@ export function Rows<T>({ selection, halfPageKeys = false, children }: RowsProps
       }}
     >
       <box flexShrink={0} onSizeChange={() => measure()}>
-        {visibleItems.map((item, offset) => (
-          <Selectable
-            key={selection.keyOf(item)}
-            selection={selection}
-            index={firstVisibleIndex + offset}
-          >
+        {visibleItems.map((item) => (
+          <Selectable key={selection.keyOf(item)} selection={selection} item={item}>
             {children(item)}
           </Selectable>
         ))}
@@ -131,12 +127,15 @@ export function Rows<T>({ selection, halfPageKeys = false, children }: RowsProps
 
 interface SelectableProps<T> {
   selection: Selection<T>;
-  index: number;
+  item: T;
   children: React.ReactNode;
 }
 
-export function Selectable<T>({ selection, index, children }: SelectableProps<T>) {
+export function Selectable<T>({ selection, item, children }: SelectableProps<T>) {
   const { requestFocus } = useFocus();
+
+  const key = selection.keyOf(item);
+  const selected = selection.selected !== undefined && selection.keyOf(selection.selected) === key;
 
   return (
     <box
@@ -144,11 +143,11 @@ export function Selectable<T>({ selection, index, children }: SelectableProps<T>
       onMouseDown={(event) => {
         if (event.button === MouseButton.LEFT) {
           requestFocus();
-          selection.select(index);
+          selection.selectKey(key);
         }
       }}
     >
-      <SelectedContext value={index === selection.index}>{children}</SelectedContext>
+      <SelectedContext value={selected}>{children}</SelectedContext>
     </box>
   );
 }
