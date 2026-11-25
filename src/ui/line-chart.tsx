@@ -1,6 +1,6 @@
 import type { ColorInput } from "@opentui/core";
 
-import { useRegionSize } from "#ui/size.tsx";
+import { useAvailableSize } from "#ui/available-size.tsx";
 import { THEME } from "#ui/theme.ts";
 
 const BRAILLE_DOT_COLUMNS = 2;
@@ -129,7 +129,7 @@ export function LineChart({
   formatValue,
   getLines,
 }: LineChartProps) {
-  const { width } = useRegionSize();
+  const { width } = useAvailableSize();
 
   const columns = Math.max(0, width - LABEL_WIDTH - LABEL_GAP);
 

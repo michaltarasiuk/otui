@@ -2,6 +2,7 @@ import { useSuspenseQueries } from "@tanstack/react-query";
 import { useDeferredValue, useState } from "react";
 
 import { useConnection } from "#query/connection.ts";
+import { useAvailableSize } from "#ui/available-size.tsx";
 import { CopyKey } from "#ui/clipboard.tsx";
 import { Meta } from "#ui/details.tsx";
 import { FocusScope } from "#ui/focus.tsx";
@@ -16,7 +17,6 @@ import { Placeholder } from "#ui/placeholder.tsx";
 import { SearchInput } from "#ui/search-input.tsx";
 import { SearchKeys } from "#ui/search-keys.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
-import { useRegionSize } from "#ui/size.tsx";
 import { THEME } from "#ui/theme.ts";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
@@ -63,7 +63,7 @@ export function TracesPage({
   onBack,
 }: TracesPageProps) {
   const connection = useConnection();
-  const { height = 0 } = useRegionSize();
+  const { height = 0 } = useAvailableSize();
   const search = useSearch();
   const [errorsOnly, setErrorsOnly] = useState(false);
   const deferredErrorsOnly = useDeferredValue(errorsOnly);

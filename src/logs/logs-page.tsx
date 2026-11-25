@@ -3,6 +3,7 @@ import { useSuspenseQueries } from "@tanstack/react-query";
 import { useDeferredValue, useRef, useState } from "react";
 
 import { useConnection } from "#query/connection.ts";
+import { useAvailableSize } from "#ui/available-size.tsx";
 import { CopyKey } from "#ui/clipboard.tsx";
 import { Meta } from "#ui/details.tsx";
 import { FocusScope } from "#ui/focus.tsx";
@@ -17,7 +18,6 @@ import { Placeholder } from "#ui/placeholder.tsx";
 import { ScrollKeys } from "#ui/scroll-box.tsx";
 import { SearchInput } from "#ui/search-input.tsx";
 import { SearchKeys } from "#ui/search-keys.tsx";
-import { useRegionSize } from "#ui/size.tsx";
 import { Split } from "#ui/split.tsx";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
@@ -53,7 +53,7 @@ interface LogsPageProps {
 
 export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }: LogsPageProps) {
   const connection = useConnection();
-  const { height = 0 } = useRegionSize();
+  const { height = 0 } = useAvailableSize();
   const search = useSearch();
   const [minSeverity, setMinSeverity] = useState<MinSeverity>(undefined);
   const deferredMinSeverity = useDeferredValue(minSeverity);

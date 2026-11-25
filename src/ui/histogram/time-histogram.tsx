@@ -1,7 +1,7 @@
 import { TextAttributes } from "@opentui/core";
 
+import { useAvailableSize } from "#ui/available-size.tsx";
 import { COLUMN_GAP } from "#ui/columns.ts";
-import { useRegionSize } from "#ui/size.tsx";
 import { THEME } from "#ui/theme.ts";
 
 import { barRows, type HistogramColumn, type HistogramRange, overlaps } from "./bars.ts";
@@ -32,7 +32,7 @@ interface TimeHistogramProps {
 }
 
 export function TimeHistogram({ title, occupied, newestBucketMs, selected }: TimeHistogramProps) {
-  const { width } = useRegionSize();
+  const { width } = useAvailableSize();
 
   const columnCount = Math.max(
     0,

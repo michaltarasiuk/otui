@@ -1,4 +1,4 @@
-import { SizeProvider, useRegionSize } from "./size.tsx";
+import { AvailableSizeProvider, useAvailableSize } from "./available-size.tsx";
 import { THEME } from "./theme.ts";
 
 export const SPLIT_PADDING_X = 1;
@@ -8,7 +8,7 @@ interface SplitProps {
 }
 
 export function Split({ children: [top, bottom] }: SplitProps) {
-  const { width } = useRegionSize();
+  const { width } = useAvailableSize();
 
   return (
     <box flexGrow={1}>
@@ -20,9 +20,9 @@ export function Split({ children: [top, bottom] }: SplitProps) {
         borderColor={THEME.textMuted}
         paddingX={SPLIT_PADDING_X}
       >
-        <SizeProvider value={{ width: width - 2 * SPLIT_PADDING_X, height: undefined }}>
+        <AvailableSizeProvider value={{ width: width - 2 * SPLIT_PADDING_X, height: undefined }}>
           {bottom}
-        </SizeProvider>
+        </AvailableSizeProvider>
       </box>
     </box>
   );

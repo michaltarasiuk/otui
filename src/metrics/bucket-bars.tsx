@@ -1,7 +1,7 @@
 import type { ColorInput } from "@opentui/core";
 
+import { useAvailableSize } from "#ui/available-size.tsx";
 import { COLUMN_GAP } from "#ui/columns.ts";
-import { useRegionSize } from "#ui/size.tsx";
 import { THEME } from "#ui/theme.ts";
 import { formatInteger } from "#utils/number.ts";
 
@@ -32,7 +32,7 @@ interface BucketBarsProps {
 }
 
 export function BucketBars({ distribution, unit, color }: BucketBarsProps) {
-  const { width } = useRegionSize();
+  const { width } = useAvailableSize();
 
   const buckets = nonEmptyRange(bucketsOf(limitBuckets(distribution, 16)));
   const maxCount = Math.max(...buckets.map((bucket) => bucket.count));

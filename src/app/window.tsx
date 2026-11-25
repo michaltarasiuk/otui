@@ -1,5 +1,5 @@
+import { AvailableSizeProvider, useAvailableSize } from "#ui/available-size.tsx";
 import { COLUMN_GAP } from "#ui/columns.ts";
-import { SizeProvider, useRegionSize } from "#ui/size.tsx";
 
 const TOP_BAR_HEIGHT = 1;
 
@@ -34,11 +34,13 @@ interface ContentProps {
 }
 
 export function Content({ children }: ContentProps) {
-  const { width, height = 0 } = useRegionSize();
+  const { width, height = 0 } = useAvailableSize();
 
   return (
     <box flexGrow={1}>
-      <SizeProvider value={{ width, height: height - TOP_BAR_HEIGHT }}>{children}</SizeProvider>
+      <AvailableSizeProvider value={{ width, height: height - TOP_BAR_HEIGHT }}>
+        {children}
+      </AvailableSizeProvider>
     </box>
   );
 }
