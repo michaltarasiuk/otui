@@ -37,7 +37,7 @@ function NumberedRows({ count, halfPageKeys = false }: NumberedRowsProps) {
   const selection = useSelection(rows, (row) => row);
 
   return (
-    <Rows items={rows} selection={selection} halfPageKeys={halfPageKeys}>
+    <Rows selection={selection} halfPageKeys={halfPageKeys}>
       {(row) => <NumberedRow name={row} />}
     </Rows>
   );

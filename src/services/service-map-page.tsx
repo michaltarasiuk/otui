@@ -42,7 +42,7 @@ export function ServiceMapPage({ onOpenTraces, onBack }: ServiceMapPageProps) {
       ) : nodes.length === 0 ? (
         <Placeholder text="Waiting for spans that call another service..." />
       ) : (
-        <ServiceMapTable nodes={nodes} selection={selection} />
+        <ServiceMapTable selection={selection} />
       )}
       <KeyHints>
         <Key name="escape" onPress={() => onBack()}>

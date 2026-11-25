@@ -13,18 +13,21 @@ import type { Selection } from "./use-selection.ts";
 const SelectedContext = createContext(false);
 
 interface RowsProps<T> {
-  items: readonly T[];
   selection: Selection<T>;
   halfPageKeys?: boolean;
   children: (item: T) => React.ReactNode;
 }
 
-export function Rows<T>({ items, selection, halfPageKeys = false, children }: RowsProps<T>) {
+export function Rows<T>({ selection, halfPageKeys = false, children }: RowsProps<T>) {
   const { focused, keysEnabled } = useFocus();
   const claimScroll = useScrollGesture();
-  const [measured, setMeasured] = useState({ height: items.length, itemCount: items.length });
+  const [measured, setMeasured] = useState({
+    height: selection.items.length,
+    itemCount: selection.items.length,
+  });
   const rowsRef = useRef<BoxRenderable>(null);
 
+  const { items } = selection;
   const visibleRowCount = measured.height < measured.itemCount ? measured.height : items.length;
   const hiddenRowCount = items.length - visibleRowCount;
   const halfPage = Math.max(1, Math.floor(visibleRowCount / 2));

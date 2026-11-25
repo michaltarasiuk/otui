@@ -15,12 +15,11 @@ export const COLUMN_ERRORS_WIDTH = 8 + COLUMN_SORT_ARROW_WIDTH;
 export const COLUMN_DURATION_WIDTH = 9 + COLUMN_SORT_ARROW_WIDTH;
 
 interface ServiceTableProps {
-  services: Service[];
   selection: Selection<Service>;
   sort: ServiceSort;
 }
 
-export function ServiceTable({ services, selection, sort }: ServiceTableProps) {
+export function ServiceTable({ selection, sort }: ServiceTableProps) {
   return (
     <>
       <TableHeader>
@@ -44,7 +43,7 @@ export function ServiceTable({ services, selection, sort }: ServiceTableProps) {
           Spans
         </Column>
       </TableHeader>
-      <Rows items={services} selection={selection}>
+      <Rows selection={selection}>
         {(service) => (
           <Row>
             <Cell grow={1}>

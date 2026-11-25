@@ -13,12 +13,11 @@ const COLUMN_UNIT_WIDTH = 10;
 const COLUMN_SERIES_WIDTH = 6 + COLUMN_SORT_ARROW_WIDTH;
 
 interface MetricTableProps {
-  metrics: Metric[];
   selection: Selection<Metric>;
   sort: MetricSort;
 }
 
-export function MetricTable({ metrics, selection, sort }: MetricTableProps) {
+export function MetricTable({ selection, sort }: MetricTableProps) {
   return (
     <>
       <TableHeader>
@@ -39,7 +38,7 @@ export function MetricTable({ metrics, selection, sort }: MetricTableProps) {
           Series
         </Column>
       </TableHeader>
-      <Rows items={metrics} selection={selection}>
+      <Rows selection={selection}>
         {(metric) => (
           <Row>
             <Cell width={COLUMN_TIME_WIDTH} muted>

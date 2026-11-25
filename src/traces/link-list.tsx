@@ -24,19 +24,18 @@ export function canOpenLink(link: SpanLink, traceId: string, spans: Span[]) {
 }
 
 interface LinkListProps {
-  links: SpanLink[];
   traceId: string;
   selection: Selection<SpanLink>;
 }
 
-export function LinkList({ links, traceId, selection }: LinkListProps) {
-  if (links.length === 0) {
+export function LinkList({ traceId, selection }: LinkListProps) {
+  if (selection.items.length === 0) {
     return null;
   }
 
   return (
     <Section title="Links">
-      {links.map((link, index) => (
+      {selection.items.map((link, index) => (
         <Selectable key={link.span_id} selection={selection} index={index}>
           <Row>
             <Cell grow={1} muted={!link.has_trace}>

@@ -132,7 +132,7 @@ export function TracesPage({
         <Placeholder text={filtered ? "No traces match" : "Waiting for traces..."} />
       ) : (
         <FocusScope focused={browsing}>
-          <TraceTable traces={traces} selection={selection} sort={deferredSort} />
+          <TraceTable selection={selection} sort={deferredSort} />
         </FocusScope>
       )}
       <KeyHints>

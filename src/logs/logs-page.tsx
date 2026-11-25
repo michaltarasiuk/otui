@@ -108,7 +108,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
       ) : (
         <FocusScope focused={browsing}>
           <Split>
-            <LogTable logs={logs} selection={selection} />
+            <LogTable selection={selection} />
             <LogDetails key={selected.log_id} ref={detailsRef} log={selected} />
           </Split>
         </FocusScope>

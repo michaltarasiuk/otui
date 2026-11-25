@@ -13,12 +13,11 @@ const COLUMN_ERRORS_WIDTH = 6 + COLUMN_SORT_ARROW_WIDTH;
 const COLUMN_DURATION_WIDTH = 8 + COLUMN_SORT_ARROW_WIDTH;
 
 interface TraceTableProps {
-  traces: Trace[];
   selection: Selection<Trace>;
   sort: TraceSort;
 }
 
-export function TraceTable({ traces, selection, sort }: TraceTableProps) {
+export function TraceTable({ selection, sort }: TraceTableProps) {
   return (
     <>
       <TableHeader>
@@ -41,7 +40,7 @@ export function TraceTable({ traces, selection, sort }: TraceTableProps) {
           Duration
         </Column>
       </TableHeader>
-      <Rows items={traces} selection={selection} halfPageKeys>
+      <Rows selection={selection} halfPageKeys>
         {(trace) => (
           <Row>
             <Cell width={COLUMN_TIME_WIDTH} muted>

@@ -60,7 +60,7 @@ export function MetricsPage({ onOpen }: MetricsPageProps) {
       ) : (
         <FocusScope focused={browsing}>
           <Split>
-            <MetricTable metrics={metrics} selection={selection} sort={deferredSort} />
+            <MetricTable selection={selection} sort={deferredSort} />
             <MetricDetails
               key={deferredSelected.metric_id}
               ref={detailsRef}

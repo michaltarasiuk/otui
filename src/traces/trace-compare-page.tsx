@@ -94,18 +94,14 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
               {rows.length === 0 ? (
                 <Placeholder text="No span changed" />
               ) : (
-                <SpanDiffTable rows={rows} selection={selection} maxDeltaMs={maxDeltaMs} />
+                <SpanDiffTable selection={selection} maxDeltaMs={maxDeltaMs} />
               )}
             </FocusScope>
             <FocusScope
               focused={region === "operations"}
               onFocusRequest={() => setRegion("operations")}
             >
-              <OperationDiffTable
-                operations={operations}
-                selection={operationSelection}
-                maxDeltaMs={maxDeltaMs}
-              />
+              <OperationDiffTable selection={operationSelection} maxDeltaMs={maxDeltaMs} />
             </FocusScope>
           </Split>
         </>

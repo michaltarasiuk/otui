@@ -84,7 +84,7 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
               focused={region === "services"}
               onFocusRequest={() => setRegion("services")}
             >
-              <ServiceTable services={services} selection={selection} sort={deferredSort} />
+              <ServiceTable selection={selection} sort={deferredSort} />
             </FocusScope>
             <ServiceDetails key={deferredSelected.service_name} service={deferredSelected}>
               <FocusScope

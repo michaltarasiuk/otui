@@ -12,11 +12,10 @@ import { severityColor } from "./severity-color.ts";
 const COLUMN_SEVERITY_WIDTH = 8;
 
 interface LogTableProps {
-  logs: Log[];
   selection: Selection<Log>;
 }
 
-export function LogTable({ logs, selection }: LogTableProps) {
+export function LogTable({ selection }: LogTableProps) {
   return (
     <>
       <TableHeader>
@@ -25,7 +24,7 @@ export function LogTable({ logs, selection }: LogTableProps) {
         <Column width={COLUMN_SERVICE_WIDTH}>Service</Column>
         <Column grow={1}>Body</Column>
       </TableHeader>
-      <Rows items={logs} selection={selection}>
+      <Rows selection={selection}>
         {(log) => (
           <Row>
             <Cell width={COLUMN_TIME_WIDTH} muted>

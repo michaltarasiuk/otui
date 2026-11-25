@@ -15,7 +15,6 @@ const COLUMN_DURATION_WIDTH = 8;
 const COLUMN_TIMELINE_GROW = 3;
 
 interface SpanWaterfallProps {
-  spans: Span[];
   selection: Selection<Span>;
   traceDurationMs: number;
   hiddenCounts: ReadonlyMap<string, number>;
@@ -23,7 +22,6 @@ interface SpanWaterfallProps {
 }
 
 export function SpanWaterfall({
-  spans,
   selection,
   traceDurationMs,
   hiddenCounts,
@@ -50,7 +48,7 @@ export function SpanWaterfall({
         </Column>
         <WaterfallScale grow={COLUMN_TIMELINE_GROW} durationMs={traceDurationMs} />
       </TableHeader>
-      <Rows items={spans} selection={selection}>
+      <Rows selection={selection}>
         {(span) => {
           const hidden = hiddenCounts.get(span.span_id);
           return (

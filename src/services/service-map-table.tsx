@@ -16,11 +16,10 @@ import {
 } from "./service-table.tsx";
 
 interface ServiceMapTableProps {
-  nodes: MapNode[];
   selection: Selection<MapNode>;
 }
 
-export function ServiceMapTable({ nodes, selection }: ServiceMapTableProps) {
+export function ServiceMapTable({ selection }: ServiceMapTableProps) {
   return (
     <>
       <TableHeader>
@@ -44,7 +43,7 @@ export function ServiceMapTable({ nodes, selection }: ServiceMapTableProps) {
           Spans
         </Column>
       </TableHeader>
-      <Rows items={nodes} selection={selection}>
+      <Rows selection={selection}>
         {({ depth, name, call, isCycle }) => (
           <Row>
             <Cell grow={1}>

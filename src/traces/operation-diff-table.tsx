@@ -15,12 +15,11 @@ const COLUMN_CHANGE_WIDTH = 9;
 const COLUMN_BAR_GROW = 2;
 
 interface OperationDiffTableProps {
-  operations: OperationDiff[];
   selection: Selection<OperationDiff>;
   maxDeltaMs: number;
 }
 
-export function OperationDiffTable({ operations, selection, maxDeltaMs }: OperationDiffTableProps) {
+export function OperationDiffTable({ selection, maxDeltaMs }: OperationDiffTableProps) {
   return (
     <>
       <TableHeader>
@@ -40,7 +39,7 @@ export function OperationDiffTable({ operations, selection, maxDeltaMs }: Operat
         </Column>
         <DeltaScale grow={COLUMN_BAR_GROW} maxDeltaMs={maxDeltaMs} />
       </TableHeader>
-      <Rows items={operations} selection={selection}>
+      <Rows selection={selection}>
         {(operation) => (
           <Row>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>

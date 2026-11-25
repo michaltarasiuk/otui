@@ -75,7 +75,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
           </PageHeader>
           <Split>
             <FocusScope focused={region === "series"} onFocusRequest={() => setRegion("series")}>
-              <SeriesTable series={rows} selection={selection} metric={metric} columns={columns} />
+              <SeriesTable selection={selection} metric={metric} columns={columns} />
             </FocusScope>
             <SeriesDetails
               key={deferredSelected.series_id}

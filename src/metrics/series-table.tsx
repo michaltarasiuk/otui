@@ -12,13 +12,12 @@ import type { Series } from "./series.ts";
 const COLUMN_STAT_WIDTH = 10;
 
 interface SeriesTableProps {
-  series: Series[];
   selection: Selection<Series>;
   metric: Metric;
   columns: AttributeColumn[];
 }
 
-export function SeriesTable({ series, selection, metric, columns }: SeriesTableProps) {
+export function SeriesTable({ selection, metric, columns }: SeriesTableProps) {
   const columnGroups = [...Map.groupBy(columns, (column) => column.source)];
 
   return (
@@ -40,7 +39,7 @@ export function SeriesTable({ series, selection, metric, columns }: SeriesTableP
           </Column>
         ))}
       </TableHeader>
-      <Rows items={series} selection={selection}>
+      <Rows selection={selection}>
         {(row) => {
           const stats = seriesStats(metric, row);
           return (

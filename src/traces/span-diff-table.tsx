@@ -44,12 +44,11 @@ function SelfTimeCell({ span, selfMs }: SelfTimeCellProps) {
 }
 
 interface SpanDiffTableProps {
-  rows: SpanDiff[];
   selection: Selection<SpanDiff>;
   maxDeltaMs: number;
 }
 
-export function SpanDiffTable({ rows, selection, maxDeltaMs }: SpanDiffTableProps) {
+export function SpanDiffTable({ selection, maxDeltaMs }: SpanDiffTableProps) {
   return (
     <>
       <TableHeader>
@@ -66,7 +65,7 @@ export function SpanDiffTable({ rows, selection, maxDeltaMs }: SpanDiffTableProp
         </Column>
         <DeltaScale grow={COLUMN_BAR_GROW} maxDeltaMs={maxDeltaMs} />
       </TableHeader>
-      <Rows items={rows} selection={selection}>
+      <Rows selection={selection}>
         {(row) => (
           <Row>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>

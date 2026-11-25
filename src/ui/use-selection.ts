@@ -22,6 +22,7 @@ export function useSelection<T>(
   const selectedIndex = indexOf(selectedKey);
 
   return {
+    items,
     index: selectedIndex,
     selected: items[selectedIndex],
     keyOf,

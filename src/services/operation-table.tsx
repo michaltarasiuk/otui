@@ -60,7 +60,7 @@ export function OperationTable({ serviceName, selection }: OperationTableProps) 
           Spans
         </Column>
       </TableHeader>
-      <Rows items={operations} selection={selection}>
+      <Rows selection={selection}>
         {(operation) => (
           <Row>
             <Cell grow={1}>{operation.name}</Cell>

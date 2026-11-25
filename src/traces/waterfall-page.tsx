@@ -150,7 +150,6 @@ export function WaterfallPage({
               onFocusRequest={() => setRegion("spans")}
             >
               <SpanWaterfall
-                spans={shown}
                 selection={selection}
                 traceDurationMs={durationMs}
                 hiddenCounts={hiddenCounts(spans, collapsed)}
@@ -167,7 +166,7 @@ export function WaterfallPage({
                 focused={browsing && region === "links"}
                 onFocusRequest={() => setRegion("links")}
               >
-                <LinkList links={links} traceId={traceId} selection={linkSelection} />
+                <LinkList traceId={traceId} selection={linkSelection} />
               </FocusScope>
             </SpanDetails>
           </Split>
