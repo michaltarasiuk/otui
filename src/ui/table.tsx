@@ -1,10 +1,10 @@
 import { type ColorInput, TextAttributes } from "@opentui/core";
-import { createContext, use } from "react";
 
 import type { Sort } from "#utils/sort.ts";
 
 import { COLUMN_GAP } from "./columns.ts";
 import { useFocus } from "./focus.tsx";
+import { useIsSelected } from "./rows.tsx";
 import { THEME } from "./theme.ts";
 
 type Align = "left" | "right";
@@ -18,8 +18,6 @@ export function sortDirection<C>(sort: Sort<C>, column: C): SortDirection | unde
   }
   return sort.descending ? "descending" : "ascending";
 }
-
-export const SelectedContext = createContext(false);
 
 interface CellLayout {
   width?: number | undefined;
@@ -67,7 +65,7 @@ interface RowProps {
 
 export function Row({ children }: RowProps) {
   const { focused } = useFocus();
-  const selected = use(SelectedContext);
+  const selected = useIsSelected();
 
   return (
     <box
@@ -88,7 +86,7 @@ interface CellProps extends CellLayout {
 }
 
 function useMutedColor() {
-  const selected = use(SelectedContext);
+  const selected = useIsSelected();
   return selected ? THEME.text : THEME.textMuted;
 }
 

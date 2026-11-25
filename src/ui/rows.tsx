@@ -1,15 +1,16 @@
 import { type BoxRenderable, MouseButton } from "@opentui/core";
 import { useBindings } from "@opentui/keymap/react";
-import { useEffectEvent, useRef, useState } from "react";
+import { createContext, use, useEffectEvent, useRef, useState } from "react";
 
 import type { Step } from "#utils/cycle.ts";
 import { clamp } from "#utils/number.ts";
 
 import { useFocus } from "./focus.tsx";
-import { SelectedContext } from "./table.tsx";
 import { THEME } from "./theme.ts";
 import { useScrollGesture } from "./use-scroll-gesture.ts";
 import type { Selection } from "./use-selection.ts";
+
+const SelectedContext = createContext(false);
 
 interface RowsProps<T> {
   items: readonly T[];
@@ -147,4 +148,8 @@ export function Selectable<T>({ selection, index, children }: SelectableProps<T>
       <SelectedContext value={index === selection.index}>{children}</SelectedContext>
     </box>
   );
+}
+
+export function useIsSelected() {
+  return use(SelectedContext);
 }

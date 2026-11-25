@@ -1,14 +1,13 @@
 import { expect, test } from "bun:test";
 
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { render } from "#testing/render.tsx";
 import { textLines } from "#testing/screen.ts";
 
 import { FocusScope } from "./focus.tsx";
 import { Key } from "./key-hints.tsx";
-import { Rows } from "./rows.tsx";
-import { SelectedContext } from "./table.tsx";
+import { Rows, useIsSelected } from "./rows.tsx";
 import { useSelection } from "./use-selection.ts";
 
 const SCREEN_SIZE = { width: 20, height: 5 };
@@ -23,7 +22,7 @@ interface NumberedRowProps {
 }
 
 function NumberedRow({ name }: NumberedRowProps) {
-  const selected = use(SelectedContext);
+  const selected = useIsSelected();
 
   return <text>{`${selected ? ">" : " "} ${name}`}</text>;
 }
