@@ -1,3 +1,5 @@
+import { isDefined } from "#utils/is-defined.ts";
+
 import type { Span } from "./span.ts";
 
 function spanEnd(span: Span) {
@@ -57,7 +59,7 @@ export function visibleSpans(spans: Span[], collapsed: ReadonlySet<string>) {
   const visible: Span[] = [];
   let hiddenBelowDepth: number | undefined;
   for (const span of spans) {
-    if (hiddenBelowDepth !== undefined && span.depth > hiddenBelowDepth) {
+    if (isDefined(hiddenBelowDepth) && span.depth > hiddenBelowDepth) {
       continue;
     }
     hiddenBelowDepth = collapsed.has(span.span_id) ? span.depth : undefined;
@@ -70,7 +72,7 @@ export function ancestorIds(spans: Span[], spanId: string) {
   const byId = new Map(spans.map((span) => [span.span_id, span]));
   const ancestors: string[] = [];
   let parentId = byId.get(spanId)?.parent_span_id ?? null;
-  while (parentId !== null && byId.has(parentId)) {
+  while (isDefined(parentId) && byId.has(parentId)) {
     ancestors.push(parentId);
     parentId = byId.get(parentId)?.parent_span_id ?? null;
   }
@@ -101,7 +103,7 @@ export function criticalPath(spans: Span[]) {
   }
 
   const [root] = spans;
-  if (root !== undefined) {
+  if (isDefined(root)) {
     walk(root, spanEnd(root));
   }
   return path;

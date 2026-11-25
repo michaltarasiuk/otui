@@ -1,3 +1,5 @@
+import { isDefined } from "./is-defined.ts";
+
 const INDENT_WIDTH = 2;
 const SHORT_ID_LENGTH = 8;
 
@@ -22,7 +24,7 @@ export function compareText(a: string, b: string) {
 export function formatJson(text: string) {
   try {
     const value: unknown = JSON.parse(text);
-    return typeof value === "object" && value !== null ? JSON.stringify(value, null, 2) : text;
+    return typeof value === "object" && isDefined(value) ? JSON.stringify(value, null, 2) : text;
   } catch {
     return text;
   }

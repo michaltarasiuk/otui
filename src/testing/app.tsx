@@ -5,6 +5,7 @@ import { App } from "#app/app.tsx";
 import { QUERY_CLIENT_CONFIG, QueryProvider, waitForInFlightQueries } from "#app/tui.tsx";
 import type { Tab } from "#app/use-pages.ts";
 import { ClipboardContext } from "#ui/clipboard.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 
 import type { TestReceiver } from "./receiver.ts";
 import { render } from "./render.tsx";
@@ -80,7 +81,7 @@ export async function renderApp(
     const frame = await screen.captureSpans();
     const styles = tabStyles(frame);
     const current = TAB_ORDER.find((name) => styles[TAB_NAMES[name]]?.highlighted === true);
-    if (current === undefined) {
+    if (!isDefined(current)) {
       throw new Error(`openTab("${tab}") found no highlighted tab`);
     }
     const from = TAB_ORDER.indexOf(current);

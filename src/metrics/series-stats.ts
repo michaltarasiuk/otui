@@ -1,3 +1,4 @@
+import { isDefined } from "#utils/is-defined.ts";
 import { formatInteger } from "#utils/number.ts";
 
 import { quantile } from "./distribution.ts";
@@ -44,7 +45,7 @@ export function statLabel(key: StatKey) {
 
 export function seriesStats(metric: Metric, { stats }: Series): Partial<Record<StatKey, string>> {
   function format(value: number | null) {
-    return value === null ? "" : formatMetricValue(value, metric.unit);
+    return isDefined(value) ? formatMetricValue(value, metric.unit) : "";
   }
 
   if (stats.kind === "distribution") {
@@ -60,7 +61,7 @@ export function seriesStats(metric: Metric, { stats }: Series): Partial<Record<S
   if (metric.type === "counter") {
     const rate = latestRate(metric, stats.latestPoints);
     return {
-      rate: rate === null ? "" : formatMetricRate(rate, metric.unit),
+      rate: isDefined(rate) ? formatMetricRate(rate, metric.unit) : "",
       total: format(stats.value),
     };
   }

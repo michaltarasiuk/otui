@@ -22,6 +22,7 @@ import { Split } from "#ui/split.tsx";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
 import { cycle } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatShownCount } from "#utils/number.ts";
 import { shortId } from "#utils/text.ts";
 
@@ -75,21 +76,21 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
 
   const filtered =
     search.deferredText !== "" ||
-    deferredMinSeverity !== undefined ||
-    traceId !== undefined ||
-    timeRange.deferredSelected !== undefined;
+    isDefined(deferredMinSeverity) ||
+    isDefined(traceId) ||
+    isDefined(timeRange.deferredSelected);
   const browsing = !search.isEditing;
 
   return (
     <box flexGrow={1}>
       <PageHeader>
         <Meta>
-          {traceId !== undefined && <Chip>trace {shortId(traceId)}</Chip>}
-          {spanId !== undefined && <Chip>span {shortId(spanId)}</Chip>}
-          {minSeverity !== undefined && (
+          {isDefined(traceId) && <Chip>trace {shortId(traceId)}</Chip>}
+          {isDefined(spanId) && <Chip>span {shortId(spanId)}</Chip>}
+          {isDefined(minSeverity) && (
             <Chip color={severityColor(minSeverity)}>≥ {minSeverity}</Chip>
           )}
-          {timeRange.selected !== undefined && <Chip>{timeRangeLabel(timeRange.selected)}</Chip>}
+          {isDefined(timeRange.selected) && <Chip>{timeRangeLabel(timeRange.selected)}</Chip>}
           <Count>{formatShownCount(logs.length, totalCount, "log")}</Count>
         </Meta>
       </PageHeader>
@@ -103,7 +104,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
       )}
       {logList.isError ? (
         <Placeholder text="Failed to load logs" variant="error" />
-      ) : selected === undefined ? (
+      ) : !isDefined(selected) ? (
         <Placeholder text={filtered ? "No logs match" : "Waiting for logs..."} />
       ) : (
         <FocusScope focused={browsing}>
@@ -120,7 +121,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
           {logs.some((log) => isError(log)) && (
             <ErrorKeys onStep={(step) => selection.jump(step, (log) => isError(log))} />
           )}
-          {selectedTraceId !== null && (
+          {isDefined(selectedTraceId) && (
             <>
               <Key
                 name="return"
@@ -138,7 +139,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
               </Key>
             </>
           )}
-          {selected !== undefined && selected.body !== null && (
+          {isDefined(selected) && isDefined(selected.body) && (
             <CopyKey name="y" text={selected.body}>
               copy body
             </CopyKey>
@@ -146,16 +147,16 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
         </FocusScope>
         <FocusScope focused={browsing}>
           {search.text === "" &&
-            (timeRange.selected !== undefined ? (
+            (isDefined(timeRange.selected) ? (
               <Key name="escape" onPress={() => timeRange.clear()}>
                 any time
               </Key>
-            ) : onBack !== undefined ? (
+            ) : isDefined(onBack) ? (
               <Key name="escape" onPress={() => onBack()}>
                 back
               </Key>
             ) : (
-              traceId !== undefined && (
+              isDefined(traceId) && (
                 <Key name="escape" onPress={() => onTraceChange(undefined)}>
                   all logs
                 </Key>
@@ -174,7 +175,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
           >
             severity
           </StepKeys>
-          {selected !== undefined && <ScrollKeys target={detailsRef} />}
+          {isDefined(selected) && <ScrollKeys target={detailsRef} />}
           <PauseKey />
         </FocusScope>
       </KeyHints>

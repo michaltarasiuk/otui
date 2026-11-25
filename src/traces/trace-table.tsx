@@ -4,6 +4,7 @@ import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, sortDirection, TableHeader } from "#ui/table.tsx";
 import { THEME } from "#ui/theme.ts";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatDuration, formatTime } from "#utils/time.ts";
 
 import type { Trace, TraceSort } from "./trace.ts";
@@ -47,7 +48,7 @@ export function TraceTable({ selection, sort }: TraceTableProps) {
               {formatTime(trace.start_time)}
             </Cell>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>
-              {trace.service_name !== null && <ServiceName name={trace.service_name} />}
+              {isDefined(trace.service_name) && <ServiceName name={trace.service_name} />}
             </Cell>
             <Cell grow={1}>{trace.name}</Cell>
             <Cell width={COLUMN_SPANS_WIDTH} align="right" muted>

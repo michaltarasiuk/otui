@@ -7,6 +7,7 @@ import { Count, PageHeader } from "#ui/page-header.tsx";
 import { PauseKey } from "#ui/pause.tsx";
 import { Placeholder } from "#ui/placeholder.tsx";
 import { useSelection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatCount } from "#utils/number.ts";
 
 import { ServiceMapTable } from "./service-map-table.tsx";
@@ -48,7 +49,7 @@ export function ServiceMapPage({ onOpenTraces, onBack }: ServiceMapPageProps) {
         <Key name="escape" onPress={() => onBack()}>
           back
         </Key>
-        {selected !== undefined && selected.call?.is_external !== true && (
+        {isDefined(selected) && selected.call?.is_external !== true && (
           <Key name="return" onPress={() => onOpenTraces(selected.name)}>
             traces
           </Key>

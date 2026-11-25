@@ -2,6 +2,8 @@ import { CliRenderEvents, type CliRenderer } from "@opentui/core";
 import { useRenderer } from "@opentui/react";
 import { useSyncExternalStore } from "react";
 
+import { isDefined } from "#utils/is-defined.ts";
+
 interface EditingStore {
   subscribe: (onChange: () => void) => () => void;
   isEditing: () => boolean;
@@ -18,14 +20,14 @@ function createEditingStore(renderer: CliRenderer): EditingStore {
       };
     },
     isEditing() {
-      return renderer.currentFocusedEditor !== null;
+      return isDefined(renderer.currentFocusedEditor);
     },
   };
 }
 
 function editingStore(renderer: CliRenderer) {
   const existing = stores.get(renderer);
-  if (existing !== undefined) {
+  if (isDefined(existing)) {
     return existing;
   }
   const store = createEditingStore(renderer);

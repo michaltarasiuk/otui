@@ -1,4 +1,5 @@
 import type { Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { clamp } from "#utils/number.ts";
 
 const LOWER_BLOCKS = "▁▂▃▄▅▆▇█";
@@ -32,14 +33,14 @@ export function stepSelection(
   step: Step,
 ) {
   let next: HistogramRange | undefined;
-  if (selected === undefined) {
+  if (!isDefined(selected)) {
     next = occupied.at(-1);
   } else if (step === 1) {
     next = occupied.find((range) => range.from >= selected.to);
   } else {
     next = occupied.findLast((range) => range.to <= selected.from);
   }
-  return next === undefined ? selected : { from: next.from, to: next.to };
+  return isDefined(next) ? { from: next.from, to: next.to } : selected;
 }
 
 function eighthsOf(count: number, maxCount: number, capacity: number) {

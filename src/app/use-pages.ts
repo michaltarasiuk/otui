@@ -1,6 +1,7 @@
 import { useDeferredValue, useState } from "react";
 
 import type { Metric } from "#metrics/metric.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import type { ScreenMode } from "./screen.tsx";
 
@@ -73,12 +74,12 @@ function pageAt({ tab, map, trace, compare, series }: Location): PageName {
     case "services":
       return map ? "map" : "services";
     case "traces":
-      if (trace !== undefined) {
+      if (isDefined(trace)) {
         return "trace";
       }
-      return compare === undefined ? "traces" : "compare";
+      return isDefined(compare) ? "compare" : "traces";
     case "metrics":
-      return series === undefined ? "metrics" : "series";
+      return isDefined(series) ? "series" : "metrics";
     case "logs":
       return "logs";
   }
@@ -119,7 +120,7 @@ function closeChange({ tab, trace }: Location): Partial<Location> {
     case "services":
       return { map: false };
     case "traces":
-      return trace === undefined ? { compare: undefined } : { trace: undefined };
+      return isDefined(trace) ? { trace: undefined } : { compare: undefined };
     case "metrics":
       return { series: undefined };
     case "logs":
@@ -137,7 +138,7 @@ function push({ location, previous }: History, change: Partial<Location>): Histo
 
 function back(history: History): History {
   const location = history.previous.at(-1);
-  if (location === undefined) {
+  if (!isDefined(location)) {
     return replace(history, closeChange(history.location));
   }
   return { location, previous: history.previous.slice(0, -1) };
@@ -176,19 +177,16 @@ export function usePages() {
     services: { mode: mode("services") },
     map: location.map ? { mode: mode("map"), back: goBack } : undefined,
     traces: { ...location.traces, mode: mode("traces"), back: historyBack },
-    trace:
-      location.trace === undefined
-        ? undefined
-        : { ...location.trace, mode: mode("trace"), back: goBack },
-    compare:
-      location.compare === undefined
-        ? undefined
-        : { ...location.compare, mode: mode("compare"), back: goBack },
+    trace: isDefined(location.trace)
+      ? { ...location.trace, mode: mode("trace"), back: goBack }
+      : undefined,
+    compare: isDefined(location.compare)
+      ? { ...location.compare, mode: mode("compare"), back: goBack }
+      : undefined,
     metrics: { mode: mode("metrics") },
-    series:
-      location.series === undefined
-        ? undefined
-        : { ...location.series, mode: mode("series"), back: goBack },
+    series: isDefined(location.series)
+      ? { ...location.series, mode: mode("series"), back: goBack }
+      : undefined,
     logs: { ...location.logs, mode: mode("logs"), back: historyBack },
     selectTab: (tab: Tab) => {
       setHistory((history) => switchTab(history, tab));

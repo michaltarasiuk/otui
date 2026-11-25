@@ -7,6 +7,7 @@ import { ScrollBox } from "#ui/scroll-box.tsx";
 import { Section } from "#ui/section.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatJson } from "#utils/text.ts";
 import { formatTime } from "#utils/time.ts";
 
@@ -38,25 +39,25 @@ export function LogDetails({ ref, log }: LogDetailsProps) {
     <>
       <DetailsHeader>
         <Meta>
-          {severityLabel !== null && (
+          {isDefined(severityLabel) && (
             <SeverityLabel severity={log.severity}>{severityLabel}</SeverityLabel>
           )}
-          {log.service_name !== null && (
+          {isDefined(log.service_name) && (
             <Fact>
               <ServiceName name={log.service_name} />
             </Fact>
           )}
-          {log.time !== null && <Fact>{formatTime(log.time)}</Fact>}
-          {log.event_name !== null && <Fact>{log.event_name}</Fact>}
+          {isDefined(log.time) && <Fact>{formatTime(log.time)}</Fact>}
+          {isDefined(log.event_name) && <Fact>{log.event_name}</Fact>}
         </Meta>
-        {log.trace_id !== null && (
+        {isDefined(log.trace_id) && (
           <Id>
             {log.trace_id} {log.span_id}
           </Id>
         )}
       </DetailsHeader>
       <ScrollBox ref={ref}>
-        {log.body !== null && (
+        {isDefined(log.body) && (
           <Section title="Body">
             <text fg={THEME.text}>{formatJson(log.body)}</text>
           </Section>
@@ -71,7 +72,7 @@ export function LogDetails({ ref, log }: LogDetailsProps) {
             <KeyValueList entries={log.resource_attributes} />
           </Section>
         )}
-        {log.scope_name !== null && (
+        {isDefined(log.scope_name) && (
           <Section title="Scope">
             <ScopeName name={log.scope_name} version={log.scope_version} />
           </Section>

@@ -5,6 +5,7 @@ import { useConnection } from "#query/connection.ts";
 import { type ReceiverCounters, readReceiverCounters } from "#receiver/receiver-counters.ts";
 import { usePaused } from "#ui/pause.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatCount } from "#utils/number.ts";
 import { formatAgo } from "#utils/time.ts";
 
@@ -20,7 +21,7 @@ function formatReceived({ total_rows, last_received_age_ms }: ReceiverCounters) 
     return "nothing received yet";
   }
   const received = `${formatCount(total_rows, "item")} received`;
-  if (last_received_age_ms === null) {
+  if (!isDefined(last_received_age_ms)) {
     return received;
   }
   return `${received} ${formatAgo(last_received_age_ms)}`;
@@ -40,9 +41,9 @@ export function ReceiverStatus({ httpUrl, grpcUrl, mcpUrl }: ReceiverStatusProps
   return (
     <text fg={THEME.textMuted} wrapMode="none" truncate>
       {paused && <span fg={THEME.textWarning}>paused · </span>}
-      {counters !== null && `${formatReceived(counters)} · `}
+      {isDefined(counters) && `${formatReceived(counters)} · `}
       OTLP/HTTP {new URL(httpUrl).host} · OTLP/gRPC {new URL(grpcUrl).host}
-      {mcpUrl !== undefined && ` · MCP ${new URL(mcpUrl).host}`}
+      {isDefined(mcpUrl) && ` · MCP ${new URL(mcpUrl).host}`}
     </text>
   );
 }

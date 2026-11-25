@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { findNextIndex, type Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { clamp } from "#utils/number.ts";
 
 export function useSelection<T>(
@@ -17,7 +18,7 @@ export function useSelection<T>(
 
   function keyAt(index: number) {
     const item = items[clamp(index, 0, items.length - 1)];
-    return item === undefined ? undefined : keyOf(item);
+    return isDefined(item) ? keyOf(item) : undefined;
   }
 
   const selectedIndex = indexOf(selectedKey);

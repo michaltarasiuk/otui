@@ -3,6 +3,7 @@ import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, Secondary, TableHeader } from "#ui/table.tsx";
 import { THEME } from "#ui/theme.ts";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatInteger, formatPercent, formatRate } from "#utils/number.ts";
 import { indent } from "#utils/text.ts";
 import { formatDuration } from "#utils/time.ts";
@@ -56,27 +57,27 @@ export function ServiceMapTable({ selection }: ServiceMapTableProps) {
               {isCycle && <Secondary> ↻</Secondary>}
             </Cell>
             <Cell width={COLUMN_RATE_WIDTH} align="right">
-              {call === undefined ? "" : formatRate(call.rate)}
+              {isDefined(call) ? formatRate(call.rate) : ""}
             </Cell>
             <Cell
               width={COLUMN_ERRORS_WIDTH}
               align="right"
               muted={call?.error_ratio === 0}
-              color={call !== undefined && call.error_ratio > 0 ? THEME.textError : undefined}
+              color={isDefined(call) && call.error_ratio > 0 ? THEME.textError : undefined}
             >
-              {call === undefined ? "" : formatPercent(call.error_ratio)}
+              {isDefined(call) ? formatPercent(call.error_ratio) : ""}
             </Cell>
             <Cell width={COLUMN_DURATION_WIDTH} align="right">
-              {call === undefined ? "" : formatDuration(call.p50_ms)}
+              {isDefined(call) ? formatDuration(call.p50_ms) : ""}
             </Cell>
             <Cell width={COLUMN_DURATION_WIDTH} align="right">
-              {call === undefined ? "" : formatDuration(call.p95_ms)}
+              {isDefined(call) ? formatDuration(call.p95_ms) : ""}
             </Cell>
             <Cell width={COLUMN_DURATION_WIDTH} align="right">
-              {call === undefined ? "" : formatDuration(call.p99_ms)}
+              {isDefined(call) ? formatDuration(call.p99_ms) : ""}
             </Cell>
             <Cell width={COLUMN_SPANS_WIDTH} align="right" muted>
-              {call === undefined ? "" : formatInteger(call.span_count)}
+              {isDefined(call) ? formatInteger(call.span_count) : ""}
             </Cell>
           </Row>
         )}

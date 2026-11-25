@@ -1,3 +1,4 @@
+import { isDefined } from "./is-defined.ts";
 import { formatInUnits, type Unit } from "./units.ts";
 
 export const SECOND_MS = 1000;
@@ -45,12 +46,12 @@ export function formatOffset(ms: number) {
 export function parseDuration(text: string) {
   const [, amount, unit = "ms"] = DURATION.exec(text) ?? [];
   const size = MS_PER_UNIT[unit];
-  return amount === undefined || size === undefined ? undefined : Number(amount) * size;
+  return isDefined(amount) && isDefined(size) ? Number(amount) * size : undefined;
 }
 
 export function formatAgo(ms: number) {
   const unit = AGE_UNITS.find(([, size]) => ms >= size);
-  if (unit === undefined) {
+  if (!isDefined(unit)) {
     return "just now";
   }
   const [suffix, size] = unit;

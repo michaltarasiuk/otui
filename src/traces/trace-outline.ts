@@ -1,3 +1,4 @@
+import { isDefined } from "#utils/is-defined.ts";
 import { formatDuration, formatOffset } from "#utils/time.ts";
 
 import { ancestorIds, criticalPath } from "./span-tree.ts";
@@ -13,7 +14,7 @@ function spanLine(span: Span, onCriticalPath: boolean) {
     `at ${formatOffset(span.offset_ms)}`,
     span.span_id,
     ...(span.is_error
-      ? [`ERROR${span.status_message === null ? "" : `: ${span.status_message}`}`]
+      ? [`ERROR${isDefined(span.status_message) ? `: ${span.status_message}` : ""}`]
       : []),
   ].join(" ");
 }

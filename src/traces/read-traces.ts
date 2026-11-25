@@ -15,6 +15,7 @@ import traceCount from "#traces/sql/trace-count.sql" with { type: "text" };
 import traceList from "#traces/sql/trace-list.sql" with { type: "text" };
 import traceSpans from "#traces/sql/trace-spans.sql" with { type: "text" };
 import traceTimeline from "#traces/sql/trace-timeline.sql" with { type: "text" };
+import { isDefined } from "#utils/is-defined.ts";
 import { sortParams } from "#utils/sort.ts";
 
 import { Span, SpanContent } from "./span.ts";
@@ -93,5 +94,5 @@ export async function readSpanContent(
 ) {
   const reader = await connection.runAndReadAll(spanContent, { traceId, spanId });
   const [row] = reader.getRowObjectsJS();
-  return row === undefined ? null : SpanContent.parse(row);
+  return isDefined(row) ? SpanContent.parse(row) : null;
 }

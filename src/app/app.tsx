@@ -16,6 +16,7 @@ import { FocusScope, KeysScope } from "#ui/focus.tsx";
 import { AppKeysContext, Key } from "#ui/key-hints.tsx";
 import { RegionKeys, useRegion } from "#ui/region.tsx";
 import { cycle } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { activeHelp, Help, type HelpEntry } from "./help.tsx";
 import { PageError, PageLoading } from "./page-fallback.tsx";
@@ -91,7 +92,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
   return (
     <AppKeysContext value={keys}>
       <Window>
-        <KeysScope enabled={help === undefined}>
+        <KeysScope enabled={!isDefined(help)}>
           <TopBar>
             <FocusScope focused={region === "tabs"} onFocusRequest={() => setRegion("tabs")}>
               <Tabs current={tab} onSelect={(tab) => selectTab(tab)} />
@@ -116,7 +117,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
                     />
                   </ErrorBoundary>
                 </Screen>
-                {map !== undefined && (
+                {isDefined(map) && (
                   <Screen mode={map.mode}>
                     <ErrorBoundary
                       fallback={
@@ -149,7 +150,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
                     </Fragment>
                   </ErrorBoundary>
                 </Screen>
-                {compare !== undefined && (
+                {isDefined(compare) && (
                   <Screen mode={compare.mode}>
                     <ErrorBoundary
                       fallback={<PageError text="Failed to load traces" onBack={compare.back} />}
@@ -168,7 +169,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
                     </ErrorBoundary>
                   </Screen>
                 )}
-                {trace !== undefined && (
+                {isDefined(trace) && (
                   <Screen mode={trace.mode}>
                     <ErrorBoundary
                       fallback={<PageError text="Failed to load trace" onBack={trace.back} />}
@@ -198,7 +199,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
                     <MetricsPage onOpen={(metric) => open({ name: "series", metric })} />
                   </ErrorBoundary>
                 </Screen>
-                {series !== undefined && (
+                {isDefined(series) && (
                   <Screen mode={series.mode}>
                     <ErrorBoundary
                       fallback={<PageError text="Failed to load metric" onBack={series.back} />}
@@ -229,7 +230,7 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
             </Content>
           </FocusScope>
         </KeysScope>
-        {help !== undefined && <Help entries={help} onClose={() => setHelp(undefined)} />}
+        {isDefined(help) && <Help entries={help} onClose={() => setHelp(undefined)} />}
       </Window>
     </AppKeysContext>
   );

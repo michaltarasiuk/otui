@@ -1,6 +1,7 @@
 import dedent from "dedent";
 
 import { startTui } from "#app/tui.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 import { StartupError } from "#utils/startup-error.ts";
 import { MINUTE_MS } from "#utils/time.ts";
 
@@ -84,7 +85,7 @@ if (parsed.kind === "help") {
   if (options.headless) {
     console.log(dedent`
       otui ${VERSION} is receiving OTLP/HTTP on ${receiver.httpUrl} and OTLP/gRPC on ${receiver.grpcUrl}
-      ${mcp === undefined ? "MCP is off; --mcp serves it" : `MCP: ${mcp.url}`}
+      ${isDefined(mcp) ? `MCP: ${mcp.url}` : "MCP is off; --mcp serves it"}
       Press ctrl+c to stop.
     `);
     await stopSignal();

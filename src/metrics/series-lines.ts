@@ -1,3 +1,5 @@
+import { isDefined } from "#utils/is-defined.ts";
+
 import { addDistributions, type Distribution, quantile } from "./distribution.ts";
 import type { Interval } from "./intervals.ts";
 
@@ -26,7 +28,7 @@ export function meanLine(samples: { time: number; value: number }[], window: Cha
 
   for (const { time, value } of samples) {
     const slot = slotOf(time, window);
-    if (slot !== null) {
+    if (isDefined(slot)) {
       sums[slot]! += value;
       counts[slot]!++;
     }
@@ -41,7 +43,7 @@ export function rateLine(intervals: Interval<number>[], window: ChartWindow) {
 
   for (const { start, end, value } of intervals) {
     const slot = slotOf(end, window);
-    if (slot !== null) {
+    if (isDefined(slot)) {
       increases[slot]! += value;
       seconds[slot]! += (end - start) / 1000;
     }
@@ -59,14 +61,14 @@ export function quantileLines(
 
   for (const { end, value } of intervals) {
     const slot = slotOf(end, window);
-    if (slot !== null) {
+    if (isDefined(slot)) {
       const current = merged[slot] ?? null;
-      merged[slot] = current === null ? value : (addDistributions(current, value) ?? current);
+      merged[slot] = isDefined(current) ? (addDistributions(current, value) ?? current) : value;
     }
   }
 
   return quantiles.map((q) =>
-    merged.map((distribution) => (distribution === null ? null : quantile(distribution, q))),
+    merged.map((distribution) => (isDefined(distribution) ? quantile(distribution, q) : null)),
   );
 }
 

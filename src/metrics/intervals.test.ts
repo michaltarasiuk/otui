@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { isDefined } from "#utils/is-defined.ts";
 import { SECOND_MS } from "#utils/time.ts";
 
 import { type Distribution, explicitBuckets } from "./distribution.ts";
@@ -9,7 +10,7 @@ import type { DistributionPoint, NumberPoint } from "./series.ts";
 function point(seconds: number, value: number, startSeconds: number | null = 0): NumberPoint {
   return {
     time: seconds * SECOND_MS,
-    start_time: startSeconds === null ? null : startSeconds * SECOND_MS,
+    start_time: isDefined(startSeconds) ? startSeconds * SECOND_MS : null,
     value,
   };
 }

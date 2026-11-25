@@ -1,3 +1,5 @@
+import { isDefined } from "#utils/is-defined.ts";
+
 import { type Distribution, hasNegativeCounts, subtractDistributions } from "./distribution.ts";
 import { isDelta, type Metric } from "./metric.ts";
 import type { DistributionPoint, NumberPoint } from "./series.ts";
@@ -29,11 +31,11 @@ function intervalsOf<P extends TimedPoint, T>(
     const previous = points[index - 1];
     const end = point.time;
     if (!delta) {
-      if (previous === undefined) {
+      if (!isDefined(previous)) {
         continue;
       }
       const increase = sameStart(point, previous) ? increaseSince(point, previous) : null;
-      if (increase !== null) {
+      if (isDefined(increase)) {
         intervals.push({ start: previous.time, end, value: increase });
         continue;
       }
@@ -63,7 +65,7 @@ export function distributionIntervals(points: DistributionPoint[], delta: boolea
     (point) => point.distribution,
     (point, previous) => {
       const increase = subtractDistributions(point.distribution, previous.distribution);
-      return increase === null || hasNegativeCounts(increase) ? null : increase;
+      return !isDefined(increase) || hasNegativeCounts(increase) ? null : increase;
     },
   );
 }
@@ -74,5 +76,5 @@ export function perSecond(interval: Interval<number>) {
 
 export function latestRate(metric: Metric, points: NumberPoint[]) {
   const latest = counterIntervals(points, isDelta(metric)).at(-1);
-  return latest === undefined ? null : perSecond(latest);
+  return isDefined(latest) ? perSecond(latest) : null;
 }

@@ -3,6 +3,7 @@ import { Rows } from "#ui/rows.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, sortDirection, TableHeader } from "#ui/table.tsx";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatInteger } from "#utils/number.ts";
 import { formatTime } from "#utils/time.ts";
 
@@ -45,7 +46,7 @@ export function MetricTable({ selection, sort }: MetricTableProps) {
               {formatTime(metric.last_time)}
             </Cell>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>
-              {metric.service_name !== null && <ServiceName name={metric.service_name} />}
+              {isDefined(metric.service_name) && <ServiceName name={metric.service_name} />}
             </Cell>
             <Cell grow={1}>{metric.name}</Cell>
             <Cell width={COLUMN_TYPE_WIDTH} muted>

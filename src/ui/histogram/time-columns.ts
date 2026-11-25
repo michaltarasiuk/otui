@@ -1,4 +1,5 @@
 import { TIME_BUCKET_MS } from "#telemetry/time-buckets.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, formatTime } from "#utils/time.ts";
 
 import type { HistogramColumn, HistogramRange } from "./bars.ts";
@@ -56,7 +57,7 @@ export function timeColumns(
 export function hiddenColumns(occupied: HistogramColumn[], columns: HistogramColumn[]) {
   const first = columns.at(0);
   const last = columns.at(-1);
-  if (first === undefined || last === undefined) {
+  if (!isDefined(first) || !isDefined(last)) {
     return { earlier: false, later: false };
   }
 

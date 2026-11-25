@@ -3,6 +3,7 @@ import { TextAttributes } from "@opentui/core";
 import { useAvailableSize } from "#ui/available-size.tsx";
 import { COLUMN_GAP } from "#ui/columns.ts";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { barRows, type HistogramColumn, type HistogramRange, overlaps } from "./bars.ts";
 import { hiddenColumns, TIME_SCALE_LABEL, timeAxis, timeColumns } from "./time-columns.ts";
@@ -19,7 +20,7 @@ export const HISTOGRAM_HEIGHT =
 const SEGMENT_COLORS = { ok: THEME.bar, error: THEME.textError };
 
 function columnBackground(column: HistogramColumn, selected: HistogramRange | undefined) {
-  return selected !== undefined && overlaps(column, selected)
+  return isDefined(selected) && overlaps(column, selected)
     ? THEME.backgroundSelected
     : THEME.background;
 }
@@ -76,11 +77,11 @@ export function TimeHistogram({ title, occupied, newestBucketMs, selected }: Tim
             {row.map(({ column, cell }) => (
               <span
                 key={column.from}
-                fg={cell.foreground === undefined ? THEME.text : SEGMENT_COLORS[cell.foreground]}
+                fg={isDefined(cell.foreground) ? SEGMENT_COLORS[cell.foreground] : THEME.text}
                 bg={
-                  cell.background === undefined
-                    ? columnBackground(column, selected)
-                    : SEGMENT_COLORS[cell.background]
+                  isDefined(cell.background)
+                    ? SEGMENT_COLORS[cell.background]
+                    : columnBackground(column, selected)
                 }
               >
                 {cell.glyph.repeat(HISTOGRAM_COLUMN_WIDTH)}

@@ -2,6 +2,7 @@ import type { ColorInput } from "@opentui/core";
 
 import { useAvailableSize } from "#ui/available-size.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 const BRAILLE_DOT_COLUMNS = 2;
 const BRAILLE_DOT_ROWS = 4;
@@ -27,7 +28,7 @@ interface Cell {
 }
 
 function valueRange(lines: ChartLine[], includeZero: boolean) {
-  const values = lines.flatMap((line) => line.values).filter((value) => value !== null);
+  const values = lines.flatMap((line) => line.values).filter((value) => isDefined(value));
   if (values.length === 0) {
     return null;
   }
@@ -62,7 +63,7 @@ function plotCells(
 
   function setDot(x: number, y: number, color: ColorInput) {
     const cell = cells[Math.floor(y / BRAILLE_DOT_ROWS)]?.[Math.floor(x / BRAILLE_DOT_COLUMNS)];
-    if (cell !== undefined) {
+    if (isDefined(cell)) {
       cell.bits |= BRAILLE_DOT_BITS[y % BRAILLE_DOT_ROWS]![x % BRAILLE_DOT_COLUMNS]!;
       cell.color = color;
     }
@@ -71,11 +72,11 @@ function plotCells(
   for (const { color, values } of lines) {
     let previous: { x: number; y: number } | null = null;
     for (const [x, value] of values.entries()) {
-      if (value === null) {
+      if (!isDefined(value)) {
         continue;
       }
       const y = toDotRow(value);
-      if (previous === null || x - previous.x > gapSlots) {
+      if (!isDefined(previous) || x - previous.x > gapSlots) {
         setDot(x, y, color);
       } else {
         let lastY = previous.y;
@@ -102,7 +103,7 @@ function toRuns(row: Cell[]) {
   for (const { bits, color } of row) {
     const char = bits === 0 ? " " : String.fromCharCode(BRAILLE_BLANK + bits);
     const last = runs.at(-1);
-    if (last !== undefined && last.color === color) {
+    if (isDefined(last) && last.color === color) {
       last.text += char;
     } else {
       runs.push({ color, text: char });
@@ -139,7 +140,7 @@ export function LineChart({
     }
     const { lines, gapSlots } = getLines(columns * BRAILLE_DOT_COLUMNS);
     const range = valueRange(lines, includeZero);
-    if (range === null) {
+    if (!isDefined(range)) {
       return (
         <box flexGrow={1} justifyContent="center" alignItems="center">
           <text fg={THEME.textMuted}>Not enough data points to plot yet</text>

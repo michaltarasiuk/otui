@@ -1,6 +1,7 @@
 import { TextAttributes } from "@opentui/core";
 
 import { serviceColor, THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatDuration } from "#utils/time.ts";
 
 import type { Span } from "./span.ts";
@@ -11,7 +12,7 @@ function barColor(span: Span) {
   if (span.is_error) {
     return THEME.textError;
   }
-  return span.service_name === null ? THEME.textMuted : serviceColor(span.service_name);
+  return isDefined(span.service_name) ? serviceColor(span.service_name) : THEME.textMuted;
 }
 
 interface WaterfallScaleProps {

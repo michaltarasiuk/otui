@@ -1,3 +1,4 @@
+import { isDefined } from "#utils/is-defined.ts";
 import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS, formatDuration } from "#utils/time.ts";
 import { formatBytes } from "#utils/units.ts";
 
@@ -52,11 +53,11 @@ export function formatMetricValue(value: number, unit: string): string {
     return `-${formatMetricValue(-value, unit)}`;
   }
   const milliseconds = MILLISECONDS_PER_UNIT[unit];
-  if (milliseconds !== undefined) {
+  if (isDefined(milliseconds)) {
     return formatDuration(value * milliseconds);
   }
   const bytes = BYTES_PER_UNIT[unit];
-  if (bytes !== undefined) {
+  if (isDefined(bytes)) {
     return formatBytes(value * bytes);
   }
   if (dimensionlessUnits.has(unit) || ANNOTATION_UNIT.test(unit)) {

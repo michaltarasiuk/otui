@@ -20,6 +20,7 @@ import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatShownCount } from "#utils/number.ts";
 import { formatDuration } from "#utils/time.ts";
 
@@ -67,7 +68,7 @@ export function TracesPage({
   const [errorsOnly, setErrorsOnly] = useState(false);
   const deferredErrorsOnly = useDeferredValue(errorsOnly);
   const timeRange = useTimeRange();
-  const [sort, setSort] = useState(operation === undefined ? NEWEST_FIRST : SLOWEST_FIRST);
+  const [sort, setSort] = useState(isDefined(operation) ? SLOWEST_FIRST : NEWEST_FIRST);
   const deferredSort = useDeferredValue(sort);
 
   const filter = {
@@ -91,28 +92,28 @@ export function TracesPage({
   const filtered =
     search.deferredText !== "" ||
     deferredErrorsOnly ||
-    timeRange.deferredSelected !== undefined ||
-    service !== undefined;
+    isDefined(timeRange.deferredSelected) ||
+    isDefined(service);
   const browsing = !search.isEditing;
 
   return (
     <box flexGrow={1}>
       <PageHeader>
         <Meta>
-          {service !== undefined && (
+          {isDefined(service) && (
             <Chip>
               <ServiceName name={service} />
             </Chip>
           )}
-          {operation !== undefined && <Chip>{operation}</Chip>}
+          {isDefined(operation) && <Chip>{operation}</Chip>}
           {errorsOnly && <Chip color={THEME.textError}>errors only</Chip>}
-          {timeRange.selected !== undefined && <Chip>{timeRangeLabel(timeRange.selected)}</Chip>}
-          {markedRow !== undefined ? (
+          {isDefined(timeRange.selected) && <Chip>{timeRangeLabel(timeRange.selected)}</Chip>}
+          {isDefined(markedRow) ? (
             <Chip>
               vs {markedRow.name} {formatDuration(markedRow.duration_ms)}
             </Chip>
           ) : (
-            marked !== undefined && <Chip>vs {marked.root.name}</Chip>
+            isDefined(marked) && <Chip>vs {marked.root.name}</Chip>
           )}
           <Count>{formatShownCount(traces.length, totalCount, "trace")}</Count>
         </Meta>
@@ -127,7 +128,7 @@ export function TracesPage({
       )}
       {traceList.isError ? (
         <Placeholder text="Failed to load traces" variant="error" />
-      ) : selected === undefined ? (
+      ) : !isDefined(selected) ? (
         <Placeholder text={filtered ? "No traces match" : "Waiting for traces..."} />
       ) : (
         <FocusScope focused={browsing}>
@@ -138,7 +139,7 @@ export function TracesPage({
         <SearchInput search={search} placeholder="trace name, service, ID or key=value" />
         <SearchKeys search={search} />
         <FocusScope focused={browsing}>
-          {selected !== undefined && (
+          {isDefined(selected) && (
             <>
               <Key
                 name="return"
@@ -151,7 +152,7 @@ export function TracesPage({
                   traceId: selected.trace_id,
                   root: { service_name: selected.service_name, name: selected.name },
                 }}
-                marked={markedRow === undefined ? undefined : marked}
+                marked={isDefined(markedRow) ? marked : undefined}
                 onMark={(marked) => onMark(marked)}
                 onCompare={(before, after) => onCompare(before, after)}
               />
@@ -166,16 +167,16 @@ export function TracesPage({
         </FocusScope>
         <FocusScope focused={browsing}>
           {search.text === "" &&
-            (timeRange.selected !== undefined ? (
+            (isDefined(timeRange.selected) ? (
               <Key name="escape" onPress={() => timeRange.clear()}>
                 any time
               </Key>
-            ) : onBack !== undefined ? (
+            ) : isDefined(onBack) ? (
               <Key name="escape" onPress={() => onBack()}>
                 back
               </Key>
             ) : (
-              service !== undefined && (
+              isDefined(service) && (
                 <Key name="escape" onPress={() => onServiceChange(undefined)}>
                   all traces
                 </Key>

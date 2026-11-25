@@ -1,5 +1,7 @@
 import { createContext, use, useEffect, useState } from "react";
 
+import { isDefined } from "#utils/is-defined.ts";
+
 import { Key } from "./key-hints.tsx";
 
 const NOTICE_MS = 1500;
@@ -14,7 +16,7 @@ export const ClipboardContext = createContext<((text: string) => Promise<boolean
 
 function useClipboard() {
   const write = use(ClipboardContext);
-  if (write === undefined) {
+  if (!isDefined(write)) {
     throw new Error("useClipboard must be used within a ClipboardContext provider");
   }
   return write;
@@ -25,7 +27,7 @@ function useCopy() {
   const [notice, setNotice] = useState<CopyNotice>();
 
   useEffect(() => {
-    if (notice === undefined) {
+    if (!isDefined(notice)) {
       return;
     }
     const timeout = setTimeout(() => setNotice(undefined), NOTICE_MS);
@@ -61,7 +63,7 @@ export function CopyKey({ name, text, description, children }: CopyKeyProps) {
 
   return (
     <Key name={name} description={description} onPress={() => copy(text)}>
-      {children === undefined ? undefined : (notice ?? children)}
+      {isDefined(children) ? (notice ?? children) : undefined}
     </Key>
   );
 }

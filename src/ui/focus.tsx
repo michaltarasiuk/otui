@@ -1,6 +1,7 @@
 import { createContext, use } from "react";
 
 import type { Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 interface Focus {
   focused: boolean;
@@ -40,7 +41,7 @@ export function FocusScope({ focused, onFocusRequest, onStepOut, children }: Foc
           parent.requestFocus();
           onFocusRequest?.();
         },
-        ...(onStepOut === undefined ? {} : { depth: parent.depth + 1, stepOut: onStepOut }),
+        ...(isDefined(onStepOut) ? { depth: parent.depth + 1, stepOut: onStepOut } : {}),
       }}
     >
       {children}

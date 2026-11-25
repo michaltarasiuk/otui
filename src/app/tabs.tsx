@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 
 import { useFocus } from "#ui/focus.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import type { Tab } from "./use-pages.ts";
 
@@ -36,7 +37,7 @@ export function Tabs({ current, onSelect }: TabsProps) {
 
   function select(index: number) {
     const tab = TABS[index];
-    if (tab !== undefined) {
+    if (isDefined(tab)) {
       onSelect(tab.value);
     }
   }

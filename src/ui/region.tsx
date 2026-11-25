@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { cycle, type Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { useFocus } from "./focus.tsx";
 import { StepKeys } from "./key-hints.tsx";
@@ -23,9 +24,9 @@ export function RegionKeys<T>({ regions, region, onChange, children }: RegionKey
 
   function step(step: Step) {
     const next = regions[regions.indexOf(region) + step];
-    if (next !== undefined) {
+    if (isDefined(next)) {
       onChange(next);
-    } else if (stepOut === undefined) {
+    } else if (!isDefined(stepOut)) {
       onChange(cycle(regions, region, step));
     } else {
       onChange(regions[0]);

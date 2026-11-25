@@ -16,6 +16,7 @@ import { Split } from "#ui/split.tsx";
 import { THEME } from "#ui/theme.ts";
 import { useSelection } from "#ui/use-selection.ts";
 import { cycle } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { MINUTE_MS } from "#utils/time.ts";
 
 import { ExemplarList } from "./exemplar-list.tsx";
@@ -51,10 +52,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
 
   const seriesId = deferredSelected?.series_id;
   const exemplarsOptions = seriesExemplarsQuery(connection, metric, seriesId);
-  const { data: exemplars = [] } = useQuery({
-    ...exemplarsOptions,
-    enabled: seriesId !== undefined,
-  });
+  const { data: exemplars = [] } = useQuery({ ...exemplarsOptions, enabled: isDefined(seriesId) });
   const exemplarSelection = useSelection(exemplars, (exemplar) => exemplar.exemplar_id);
   const exemplar = exemplarSelection.selected;
   const exemplarTraceId = exemplar?.has_trace === true ? exemplar.trace_id : null;
@@ -66,7 +64,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
     <box flexGrow={1}>
       {metricSeries.isError ? (
         <Placeholder text="Failed to load metric" variant="error" />
-      ) : selected === undefined || deferredSelected === undefined ? (
+      ) : !isDefined(selected) || !isDefined(deferredSelected) ? (
         <Placeholder text="This metric is no longer available" />
       ) : (
         <>
@@ -116,7 +114,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
             backwardDescription="previous exemplar"
             onStep={(step) => exemplarSelection.move(step)}
           />
-          {exemplarTraceId !== null && (
+          {isDefined(exemplarTraceId) && (
             <Key
               name="return"
               onPress={() => onOpenTrace(exemplarTraceId, exemplar?.span_id ?? undefined)}
@@ -125,7 +123,7 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
             </Key>
           )}
         </FocusScope>
-        {selected !== undefined && (
+        {isDefined(selected) && (
           <>
             <StepKeys
               forward="w"

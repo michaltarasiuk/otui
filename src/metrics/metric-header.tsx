@@ -1,5 +1,6 @@
 import { Description, DetailsHeader, Id, Meta, Fact, Title } from "#ui/details.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatCount } from "#utils/number.ts";
 
 import { type Metric, temporalityLabel, typeLabel } from "./metric.ts";
@@ -19,13 +20,13 @@ export function MetricHeader({ metric, seriesCount }: MetricHeaderProps) {
         <Id>{typeLabel(metric.type)}</Id>
       </DetailsHeader>
       <Meta>
-        {metric.service_name !== null && (
+        {isDefined(metric.service_name) && (
           <Fact>
             <ServiceName name={metric.service_name} />
           </Fact>
         )}
         {metric.unit !== "" && <Fact>unit {metric.unit}</Fact>}
-        {temporality !== null && <Fact>{temporality}</Fact>}
+        {isDefined(temporality) && <Fact>{temporality}</Fact>}
         <Fact>{formatCount(seriesCount, "series", "series")}</Fact>
       </Meta>
       {metric.description !== "" && <Description>{metric.description}</Description>}

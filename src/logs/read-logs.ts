@@ -12,6 +12,7 @@ import {
   timeRangeParams,
   type TimeRange,
 } from "#telemetry/time-buckets.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { Log } from "./log.ts";
 import { lowestSeverityNumber, type SeverityLevel } from "./severity.ts";
@@ -32,8 +33,9 @@ export interface LogQuery extends LogFilter {
 function filterParams({ search, minSeverity, traceId, spanId }: LogFilter) {
   return {
     ...searchParams(search),
-    minSeverityNumber:
-      minSeverity === undefined ? ANY_SEVERITY_NUMBER : lowestSeverityNumber(minSeverity),
+    minSeverityNumber: isDefined(minSeverity)
+      ? lowestSeverityNumber(minSeverity)
+      : ANY_SEVERITY_NUMBER,
     traceId: traceId ?? null,
     spanId: spanId ?? null,
   };

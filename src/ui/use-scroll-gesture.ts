@@ -2,6 +2,8 @@ import type { CliRenderer } from "@opentui/core";
 import { useRenderer } from "@opentui/react";
 import { useId } from "react";
 
+import { isDefined } from "#utils/is-defined.ts";
+
 export const GESTURE_PAUSE_MS = 150;
 
 interface Gesture {
@@ -18,7 +20,7 @@ export function useScrollGesture() {
   return function claim() {
     const now = Date.now();
     const gesture = gestures.get(renderer);
-    if (gesture !== undefined) {
+    if (isDefined(gesture)) {
       const sinceLastScroll = now - gesture.lastScrollAt;
       if (sinceLastScroll <= GESTURE_PAUSE_MS) {
         gesture.lastScrollAt = now;

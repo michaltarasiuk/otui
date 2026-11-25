@@ -8,6 +8,7 @@ import { Section } from "#ui/section.tsx";
 import { Cell, Row } from "#ui/table.tsx";
 import { THEME } from "#ui/theme.ts";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatTime } from "#utils/time.ts";
 
 import { seriesExemplarsQuery } from "./metric-queries.ts";
@@ -18,7 +19,7 @@ import type { Exemplar } from "./series.ts";
 const COLUMN_VALUE_WIDTH = 10;
 
 function traceLabel({ trace_id, span_id, has_trace }: Exemplar) {
-  if (trace_id === null) {
+  if (!isDefined(trace_id)) {
     return "no trace";
   }
   const ids = `${trace_id} ${span_id ?? ""}`.trim();

@@ -4,6 +4,7 @@ import { Rows } from "#ui/rows.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, TableHeader } from "#ui/table.tsx";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatDuration, formatOffset } from "#utils/time.ts";
 
 import { operationDelta, type OperationDiff } from "./span-diff.ts";
@@ -43,7 +44,7 @@ export function OperationDiffTable({ selection, maxDeltaMs }: OperationDiffTable
         {(operation) => (
           <Row>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>
-              {operation.serviceName !== null && <ServiceName name={operation.serviceName} />}
+              {isDefined(operation.serviceName) && <ServiceName name={operation.serviceName} />}
             </Cell>
             <Cell grow={COLUMN_NAME_GROW}>{operation.name}</Cell>
             <Cell width={COLUMN_COUNT_WIDTH} align="right" muted>

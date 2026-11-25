@@ -1,3 +1,5 @@
+import { isDefined } from "#utils/is-defined.ts";
+
 import { selfTimes } from "./span-tree.ts";
 import type { Span } from "./span.ts";
 
@@ -40,7 +42,7 @@ function childrenById(spans: Span[]) {
 }
 
 function childrenOf(children: Map<string | null, Span[]>, parent: Span | undefined) {
-  return parent === undefined ? [] : (children.get(parent.span_id) ?? []);
+  return isDefined(parent) ? (children.get(parent.span_id) ?? []) : [];
 }
 
 function byDiffId(siblings: Span[], parentId: string) {
@@ -56,7 +58,7 @@ function byDiffId(siblings: Span[], parentId: string) {
 }
 
 function selfTime(self: Map<string, number>, span: Span | undefined) {
-  return span === undefined ? 0 : (self.get(span.span_id) ?? 0);
+  return isDefined(span) ? (self.get(span.span_id) ?? 0) : 0;
 }
 
 function startOffset({ before, after }: SpanDiff) {
@@ -112,7 +114,7 @@ export function selfDelta({ beforeSelfMs, afterSelfMs }: SpanDiff) {
 }
 
 export function isAddedOrRemoved({ before, after }: SpanDiff) {
-  return before === undefined || after === undefined;
+  return !isDefined(before) || !isDefined(after);
 }
 
 export function hasChanged(row: SpanDiff) {

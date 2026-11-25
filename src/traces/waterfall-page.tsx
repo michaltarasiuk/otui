@@ -17,6 +17,7 @@ import { Split } from "#ui/split.tsx";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
 import { findNextIndex, type Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { toggle } from "#utils/set.ts";
 
 import { canOpenLink, LinkList } from "./link-list.tsx";
@@ -76,7 +77,7 @@ export function WaterfallPage({
   const durationMs = traceDuration(spans);
   const onCriticalPath = showCriticalPath ? criticalPath(spans) : undefined;
   const highlighted =
-    onCriticalPath !== undefined && matches !== null
+    isDefined(onCriticalPath) && isDefined(matches)
       ? onCriticalPath.intersection(matches)
       : (onCriticalPath ?? matches ?? undefined);
 
@@ -91,24 +92,24 @@ export function WaterfallPage({
   }
 
   function stepToMatch(index: number, step: Step) {
-    if (matches === null || matches.size === 0) {
+    if (!isDefined(matches) || matches.size === 0) {
       return;
     }
     const next = findNextIndex(spans, index, step, (span) => matches.has(span.span_id));
     const match = spans[next];
-    if (match !== undefined) {
+    if (isDefined(match)) {
       selectSpan(match.span_id);
     }
   }
 
-  if (jumping && search.deferredText === search.text && selected !== undefined) {
+  if (jumping && search.deferredText === search.text && isDefined(selected)) {
     setJumping(false);
     stepToMatch(spans.indexOf(selected) - 1, 1);
   }
 
   const selectedSpanId = deferredSelected?.span_id;
   const spanContentOptions = spanContentQuery(connection, traceId, selectedSpanId);
-  const spanContent = useQuery({ ...spanContentOptions, enabled: selectedSpanId !== undefined });
+  const spanContent = useQuery({ ...spanContentOptions, enabled: isDefined(selectedSpanId) });
   const links = spanContent.data?.links ?? [];
   const linkSelection = useSelection(links, (link) => link.span_id);
   const link = linkSelection.selected;
@@ -131,7 +132,7 @@ export function WaterfallPage({
     <box flexGrow={1}>
       {traceSpans.isError ? (
         <Placeholder text="Failed to load trace" variant="error" />
-      ) : root === undefined || deferredSelected === undefined ? (
+      ) : !isDefined(root) || !isDefined(deferredSelected) ? (
         <Placeholder text="This trace is no longer available" />
       ) : (
         <>
@@ -184,7 +185,7 @@ export function WaterfallPage({
           <Key name="l" onPress={() => onOpenLogs()}>
             logs
           </Key>
-          {root !== undefined && (
+          {isDefined(root) && (
             <MarkKeys
               trace={{ traceId, root: { service_name: root.service_name, name: root.name } }}
               marked={marked}
@@ -192,7 +193,7 @@ export function WaterfallPage({
               onCompare={(before, after) => onCompare(before, after)}
             />
           )}
-          {selected !== undefined && (
+          {isDefined(selected) && (
             <>
               <FocusScope focused={region === "spans"}>
                 <Key
@@ -200,7 +201,7 @@ export function WaterfallPage({
                   description="logs of the selected span"
                   onPress={() => onOpenLogs(selected.span_id)}
                 />
-                {matches !== null && matches.size > 0 && (
+                {isDefined(matches) && matches.size > 0 && (
                   <StepKeys
                     forward="n"
                     backward="shift+n"
@@ -247,7 +248,7 @@ export function WaterfallPage({
               backwardDescription="previous link"
               onStep={(step) => linkSelection.move(step)}
             />
-            {link !== undefined && canOpenLink(link, traceId, spans) && (
+            {isDefined(link) && canOpenLink(link, traceId, spans) && (
               <Key name="return" onPress={() => openLink(link)}>
                 open link
               </Key>

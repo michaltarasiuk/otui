@@ -25,6 +25,7 @@ import { StrictMode } from "react";
 import { ConnectionContext } from "#query/connection.ts";
 import { POLL_INTERVAL_MS } from "#query/polling.ts";
 import { ClipboardContext } from "#ui/clipboard.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { App } from "./app.tsx";
 
@@ -54,7 +55,7 @@ export async function waitForInFlightQueries(queryClient: QueryClient) {
     .getQueryCache()
     .findAll({ fetchStatus: "fetching" })
     .map((query) => query.promise)
-    .filter((promise) => promise !== undefined);
+    .filter((promise) => isDefined(promise));
   await Promise.allSettled(promises);
 }
 
@@ -98,7 +99,7 @@ export async function startTui({ connection, httpUrl, grpcUrl, mcpUrl, onClear }
   });
 
   renderer.keyInput.on("keypress", (key) => {
-    if (key.name === "`" && renderer.currentFocusedEditor === null) {
+    if (key.name === "`" && !isDefined(renderer.currentFocusedEditor)) {
       renderer.console.toggle();
     }
   });

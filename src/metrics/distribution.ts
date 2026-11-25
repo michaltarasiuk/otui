@@ -1,3 +1,5 @@
+import { isDefined } from "#utils/is-defined.ts";
+
 export interface Bucket {
   lower: number;
   upper: number;
@@ -135,12 +137,12 @@ function combineKnown(
   b: number | null,
   combine: (a: number, b: number) => number,
 ) {
-  return a === null || b === null ? null : combine(a, b);
+  return isDefined(a) && isDefined(b) ? combine(a, b) : null;
 }
 
 export function addDistributions(a: Distribution, b: Distribution) {
   const buckets = combineBuckets(a.buckets, b.buckets, 1);
-  if (buckets === null) {
+  if (!isDefined(buckets)) {
     return null;
   }
   return {
@@ -154,7 +156,7 @@ export function addDistributions(a: Distribution, b: Distribution) {
 
 export function subtractDistributions(a: Distribution, b: Distribution) {
   const buckets = combineBuckets(a.buckets, b.buckets, -1);
-  if (buckets === null) {
+  if (!isDefined(buckets)) {
     return null;
   }
   return {

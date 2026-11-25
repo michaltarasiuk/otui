@@ -10,6 +10,7 @@ import { createRoot, flushSync } from "@opentui/react";
 import { StrictMode } from "react";
 
 import { RENDERER_CONFIG } from "#app/tui.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 import { collapseWhitespace } from "#utils/text.ts";
 
 import { selectedBackground } from "./screen.ts";
@@ -57,7 +58,7 @@ export async function render(node: React.ReactNode, { width, height }: RenderOpt
     while (performance.now() < deadline) {
       await setup.renderOnce();
       const captured = await capture();
-      if (captured !== undefined && matches(captured)) {
+      if (isDefined(captured) && matches(captured)) {
         await runPendingEffects();
         return captured;
       }
@@ -89,10 +90,10 @@ export async function render(node: React.ReactNode, { width, height }: RenderOpt
   async function waitForSelection(text: string, { line }: SelectionOptions = {}) {
     const selected = await waitUntil(
       async () => firstSelectedLine(await captureSpans()),
-      (selected) => selected.text.includes(text) && (line === undefined || selected.line === line),
-      line === undefined
-        ? `a selected row containing "${text}"`
-        : `a selected row containing "${text}" on line ${line}`,
+      (selected) => selected.text.includes(text) && (!isDefined(line) || selected.line === line),
+      isDefined(line)
+        ? `a selected row containing "${text}" on line ${line}`
+        : `a selected row containing "${text}"`,
     );
     return selected.text;
   }

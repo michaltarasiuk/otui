@@ -1,6 +1,7 @@
 import { useRetry } from "#ui/error-boundary.tsx";
 import { Key, KeyHints } from "#ui/key-hints.tsx";
 import { Placeholder } from "#ui/placeholder.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 
 export function PageLoading() {
   return (
@@ -26,7 +27,7 @@ export function PageError({ text, onBack }: PageErrorProps) {
         <Key name="r" onPress={() => retry()}>
           retry
         </Key>
-        {onBack !== undefined && (
+        {isDefined(onBack) && (
           <Key name="escape" onPress={() => onBack()}>
             back
           </Key>

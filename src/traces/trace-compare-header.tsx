@@ -1,6 +1,7 @@
 import { DetailsHeader, Fact, Id, Meta, Title } from "#ui/details.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatInteger } from "#utils/number.ts";
 import { shortId } from "#utils/text.ts";
 import { formatDuration, formatOffset } from "#utils/time.ts";
@@ -41,7 +42,7 @@ export function TraceCompareHeader({
         </Id>
       </DetailsHeader>
       <Meta>
-        {root.service_name !== null && (
+        {isDefined(root.service_name) && (
           <Fact>
             <ServiceName name={root.service_name} />
           </Fact>

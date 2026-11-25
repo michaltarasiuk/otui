@@ -4,6 +4,7 @@ import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, Secondary, TableHeader } from "#ui/table.tsx";
 import { THEME } from "#ui/theme.ts";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { indent } from "#utils/text.ts";
 import { formatDuration } from "#utils/time.ts";
 
@@ -28,7 +29,7 @@ export function SpanWaterfall({
   highlighted,
 }: SpanWaterfallProps) {
   function dimmed(span: Span) {
-    return highlighted !== undefined && !highlighted.has(span.span_id);
+    return isDefined(highlighted) && !highlighted.has(span.span_id);
   }
 
   function nameColor(span: Span) {
@@ -54,12 +55,12 @@ export function SpanWaterfall({
           return (
             <Row>
               <Cell width={COLUMN_SERVICE_WIDTH} muted>
-                {span.service_name !== null && <ServiceName name={span.service_name} />}
+                {isDefined(span.service_name) && <ServiceName name={span.service_name} />}
               </Cell>
               <Cell grow={COLUMN_NAME_GROW} color={nameColor(span)}>
                 {indent(span.depth)}
                 {span.name}
-                {hidden !== undefined && <Secondary> +{hidden}</Secondary>}
+                {isDefined(hidden) && <Secondary> +{hidden}</Secondary>}
               </Cell>
               <Cell width={COLUMN_DURATION_WIDTH} align="right">
                 {formatDuration(span.duration_ms)}

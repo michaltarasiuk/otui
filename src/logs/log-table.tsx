@@ -3,6 +3,7 @@ import { Rows } from "#ui/rows.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, Secondary, TableHeader } from "#ui/table.tsx";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { collapseWhitespace } from "#utils/text.ts";
 import { formatTime } from "#utils/time.ts";
 
@@ -28,17 +29,17 @@ export function LogTable({ selection }: LogTableProps) {
         {(log) => (
           <Row>
             <Cell width={COLUMN_TIME_WIDTH} muted>
-              {log.time !== null && formatTime(log.time)}
+              {isDefined(log.time) && formatTime(log.time)}
             </Cell>
             <Cell width={COLUMN_SEVERITY_WIDTH} color={severityColor(log.severity)}>
               {log.severity ?? log.severity_text}
             </Cell>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>
-              {log.service_name !== null && <ServiceName name={log.service_name} />}
+              {isDefined(log.service_name) && <ServiceName name={log.service_name} />}
             </Cell>
             <Cell grow={1}>
-              {log.event_name !== null && <Secondary>{log.event_name} </Secondary>}
-              {log.body !== null && collapseWhitespace(log.body)}
+              {isDefined(log.event_name) && <Secondary>{log.event_name} </Secondary>}
+              {isDefined(log.body) && collapseWhitespace(log.body)}
             </Cell>
           </Row>
         )}

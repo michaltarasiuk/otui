@@ -1,6 +1,8 @@
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { queryOptions } from "@tanstack/react-query";
 
+import { isDefined } from "#utils/is-defined.ts";
+
 import {
   readSpanContent,
   readSpanMatches,
@@ -55,6 +57,6 @@ export function spanContentQuery(
 ) {
   return queryOptions({
     queryKey: ["traces", traceId, "spans", spanId],
-    queryFn: () => (spanId === undefined ? null : readSpanContent(connection, traceId, spanId)),
+    queryFn: () => (isDefined(spanId) ? readSpanContent(connection, traceId, spanId) : null),
   });
 }

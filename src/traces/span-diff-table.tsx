@@ -5,6 +5,7 @@ import { ServiceName } from "#ui/service-name.tsx";
 import { Cell, Column, Row, TableHeader } from "#ui/table.tsx";
 import { THEME } from "#ui/theme.ts";
 import type { Selection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { indent } from "#utils/text.ts";
 import { formatDuration, formatOffset } from "#utils/time.ts";
 
@@ -17,10 +18,10 @@ const COLUMN_CHANGE_WIDTH = 9;
 const COLUMN_BAR_GROW = 2;
 
 function change(row: SpanDiff) {
-  if (row.before === undefined) {
+  if (!isDefined(row.before)) {
     return "added";
   }
-  if (row.after === undefined) {
+  if (!isDefined(row.after)) {
     return "removed";
   }
   return formatOffset(selfDelta(row));
@@ -37,8 +38,8 @@ interface SelfTimeCellProps {
 
 function SelfTimeCell({ span, selfMs }: SelfTimeCellProps) {
   return (
-    <Cell width={COLUMN_DURATION_WIDTH} align="right" muted={span === undefined}>
-      {span === undefined ? "-" : formatDuration(selfMs)}
+    <Cell width={COLUMN_DURATION_WIDTH} align="right" muted={!isDefined(span)}>
+      {isDefined(span) ? formatDuration(selfMs) : "-"}
     </Cell>
   );
 }
@@ -69,7 +70,7 @@ export function SpanDiffTable({ selection, maxDeltaMs }: SpanDiffTableProps) {
         {(row) => (
           <Row>
             <Cell width={COLUMN_SERVICE_WIDTH} muted>
-              {row.serviceName !== null && <ServiceName name={row.serviceName} />}
+              {isDefined(row.serviceName) && <ServiceName name={row.serviceName} />}
             </Cell>
             <Cell grow={COLUMN_NAME_GROW} color={isError(row) ? THEME.textError : THEME.text}>
               {indent(row.depth)}

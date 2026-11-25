@@ -2,6 +2,7 @@ import { useBindings } from "@opentui/keymap/react";
 import { createContext, type SetStateAction, use, useEffectEvent, useId } from "react";
 
 import { cycle, type Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import type { Sort } from "#utils/sort.ts";
 
 import { COLUMN_GAP } from "./columns.ts";
@@ -44,13 +45,13 @@ export function Key({ name, priority = 0, description, onPress, children }: KeyP
     () => ({
       enabled: focused && keysEnabled,
       priority,
-      commands: [{ name: command, ...(desc === undefined ? {} : { desc }), run: () => press() }],
+      commands: [{ name: command, ...(isDefined(desc) ? { desc } : {}), run: () => press() }],
       bindings: [{ key: name, cmd: command }],
     }),
     [focused, keysEnabled, priority, command, desc, name],
   );
 
-  if (!focused || children === undefined) {
+  if (!focused || !isDefined(children)) {
     return null;
   }
 

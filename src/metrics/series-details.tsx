@@ -5,6 +5,7 @@ import { KeyValueList } from "#ui/key-value-list.tsx";
 import { ScrollBox } from "#ui/scroll-box.tsx";
 import { Section } from "#ui/section.tsx";
 import { serviceColor, THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatTime } from "#utils/time.ts";
 
 import { BucketBars } from "./bucket-bars.tsx";
@@ -33,7 +34,7 @@ export function SeriesDetails({
   children,
 }: SeriesDetailsProps) {
   const stats = seriesStats(metric, series);
-  const color = metric.service_name === null ? THEME.text : serviceColor(metric.service_name);
+  const color = isDefined(metric.service_name) ? serviceColor(metric.service_name) : THEME.text;
 
   return (
     <>
@@ -72,7 +73,7 @@ export function SeriesDetails({
             <KeyValueList entries={series.resource_attributes} />
           </Section>
         )}
-        {series.scope_name !== null && (
+        {isDefined(series.scope_name) && (
           <Section title="Scope">
             <ScopeName name={series.scope_name} version={series.scope_version} />
           </Section>

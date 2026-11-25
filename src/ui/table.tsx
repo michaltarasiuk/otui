@@ -1,5 +1,6 @@
 import { type ColorInput, TextAttributes } from "@opentui/core";
 
+import { isDefined } from "#utils/is-defined.ts";
 import type { Sort } from "#utils/sort.ts";
 
 import { COLUMN_GAP } from "./columns.ts";
@@ -27,8 +28,8 @@ interface CellLayout {
 
 function cellLayoutProps({ width, grow, align = "left" }: CellLayout) {
   return {
-    ...(width === undefined ? {} : { width }),
-    ...(grow === undefined ? {} : { flexGrow: grow, flexBasis: 0 }),
+    ...(isDefined(width) ? { width } : {}),
+    ...(isDefined(grow) ? { flexGrow: grow, flexBasis: 0 } : {}),
     textAlign: align,
     wrapMode: "none",
     truncate: true,
@@ -49,7 +50,7 @@ interface ColumnProps extends CellLayout {
 }
 
 export function Column({ sort, children, ...layout }: ColumnProps) {
-  const arrow = sort === undefined ? [] : [SORT_ARROWS[sort]];
+  const arrow = isDefined(sort) ? [SORT_ARROWS[sort]] : [];
   const parts = layout.align === "right" ? [...arrow, children] : [children, ...arrow];
 
   return (

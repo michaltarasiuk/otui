@@ -1,3 +1,5 @@
+import { isDefined } from "#utils/is-defined.ts";
+
 export const SPAN_KIND = { server: 2, client: 3, consumer: 5 } as const;
 export const STATUS_CODE = { error: 2 } as const;
 export const SEVERITY_NUMBER = { debug: 5, info: 9, warn: 13, error: 17, fatal: 21 } as const;
@@ -160,7 +162,7 @@ function keyValues(attributes: AttributeMap = {}) {
 }
 
 function unixNano(time: Date | undefined) {
-  return time === undefined ? undefined : String(BigInt(time.getTime()) * 1_000_000n);
+  return isDefined(time) ? String(BigInt(time.getTime()) * 1_000_000n) : undefined;
 }
 
 function int64(value: number) {
@@ -180,7 +182,7 @@ function resource({ service, attributes }: ResourceFixture) {
 }
 
 function logBody(body: LogFixture["body"]) {
-  if (body === undefined) {
+  if (!isDefined(body)) {
     return undefined;
   }
   return typeof body === "object" ? { kvlistValue: { values: keyValues(body) } } : anyValue(body);
@@ -251,9 +253,9 @@ function histogramDataPoint(point: HistogramPointFixture) {
 }
 
 function exponentialBuckets(buckets: ExponentialBucketsFixture | undefined) {
-  return buckets === undefined
-    ? undefined
-    : { offset: buckets.offset, bucketCounts: int64s(buckets.counts) };
+  return isDefined(buckets)
+    ? { offset: buckets.offset, bucketCounts: int64s(buckets.counts) }
+    : undefined;
 }
 
 function exponentialHistogramDataPoint(point: ExponentialHistogramPointFixture) {

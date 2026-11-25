@@ -1,4 +1,5 @@
 import { Key } from "#ui/key-hints.tsx";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { type MarkedTrace, sameRoot } from "./trace.ts";
 
@@ -21,7 +22,7 @@ export function MarkKeys({ trace, marked, onMark, onCompare }: MarkKeysProps) {
       >
         {unmark ? "unmark" : "mark"}
       </Key>
-      {marked !== undefined && !unmark && sameRoot(marked.root, trace.root) && (
+      {isDefined(marked) && !unmark && sameRoot(marked.root, trace.root) && (
         <Key
           name="v"
           description="compare with the marked trace, which has the same root span"

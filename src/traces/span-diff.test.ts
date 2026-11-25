@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 
+import { isDefined } from "#utils/is-defined.ts";
+
 import { diffOperations, diffSpans, selfDelta, hasChanged, type SpanDiff } from "./span-diff.ts";
 import type { Span } from "./span.ts";
 
@@ -125,7 +127,7 @@ test("counts a span as changed when only one trace has it or it moved by more th
     ],
   );
 
-  expect([root, same, slower, added].map((row) => row !== undefined && hasChanged(row))).toEqual([
+  expect([root, same, slower, added].map((row) => isDefined(row) && hasChanged(row))).toEqual([
     false,
     false,
     true,

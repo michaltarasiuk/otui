@@ -28,6 +28,7 @@ import { traceDuration } from "#traces/span-tree.ts";
 import type { Span, SpanContent } from "#traces/span.ts";
 import { traceOutline } from "#traces/trace-outline.ts";
 import { sameRoot, type Trace } from "#traces/trace.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 200;
@@ -86,7 +87,7 @@ function attributeObject(attributes: Attributes) {
 }
 
 function isoTime(timeMs: number | null) {
-  return timeMs === null ? null : new Date(timeMs).toISOString();
+  return isDefined(timeMs) ? new Date(timeMs).toISOString() : null;
 }
 
 function descending<T>(column: T) {
@@ -126,10 +127,10 @@ function traceTotals(traceId: string, spans: Span[]) {
 }
 
 function spanChange(row: SpanDiff) {
-  if (row.before === undefined) {
+  if (!isDefined(row.before)) {
     return "added";
   }
-  return row.after === undefined ? "removed" : "changed";
+  return isDefined(row.after) ? "changed" : "removed";
 }
 
 function spanDiffSummary(row: SpanDiff) {
@@ -356,7 +357,7 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
       }
       const [beforeRoot] = before;
       const [afterRoot] = after;
-      if (beforeRoot === undefined || afterRoot === undefined || !sameRoot(beforeRoot, afterRoot)) {
+      if (!isDefined(beforeRoot) || !isDefined(afterRoot) || !sameRoot(beforeRoot, afterRoot)) {
         return errorResult(
           "The traces start with different root spans, so they don't compare. " +
             "list_traces with service and operation finds traces with the same root span.",
@@ -390,7 +391,7 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
     },
     async ({ trace_id, span_id }) => {
       const content = await readSpanContent(connection, trace_id, span_id);
-      if (content === null) {
+      if (!isDefined(content)) {
         return errorResult(
           `No span ${span_id} stored in trace ${trace_id}. ` +
             "get_trace lists the span IDs of a trace.",
@@ -440,7 +441,7 @@ export function registerTools(server: McpServer, connection: DuckDBConnection) {
     async ({ name, service }) => {
       const metrics = await readNamedMetrics(connection, name, service);
       if (metrics.length === 0) {
-        const from = service === undefined ? "" : ` from ${service}`;
+        const from = isDefined(service) ? ` from ${service}` : "";
         return errorResult(`No metric named ${name}${from}. list_metrics returns metric names.`);
       }
       const summaries = await Promise.all(

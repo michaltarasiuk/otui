@@ -1,6 +1,8 @@
 import type { DuckDBConnection } from "@duckdb/node-api";
 import { queryOptions } from "@tanstack/react-query";
 
+import { isDefined } from "#utils/is-defined.ts";
+
 import type { Metric } from "./metric.ts";
 import {
   type MetricQuery,
@@ -47,7 +49,6 @@ export function seriesExemplarsQuery(
 ) {
   return queryOptions({
     queryKey: ["metrics", metric.metric_id, "series", seriesId, "exemplars"],
-    queryFn: () =>
-      seriesId === undefined ? [] : readSeriesExemplars(connection, metric, seriesId),
+    queryFn: () => (isDefined(seriesId) ? readSeriesExemplars(connection, metric, seriesId) : []),
   });
 }

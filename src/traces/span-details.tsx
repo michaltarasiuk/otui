@@ -9,6 +9,7 @@ import { ScrollBox } from "#ui/scroll-box.tsx";
 import { Section } from "#ui/section.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatDuration, formatOffset, formatTime } from "#utils/time.ts";
 
 import type { Span } from "./span.ts";
@@ -26,7 +27,7 @@ function SpanSections({ traceId, spanId, children }: SpanSectionsProps) {
   const connection = useConnection();
   const { data: content } = useSuspenseQuery(spanContentQuery(connection, traceId, spanId));
 
-  if (content === null) {
+  if (!isDefined(content)) {
     return <Description>Span is no longer stored</Description>;
   }
 
@@ -37,7 +38,7 @@ function SpanSections({ traceId, spanId, children }: SpanSectionsProps) {
           {content.events.map((event) => (
             <box key={event.event_id}>
               <text fg={THEME.text}>
-                {event.offset_ms !== null && (
+                {isDefined(event.offset_ms) && (
                   <span fg={THEME.textMuted}>{formatOffset(event.offset_ms)} </span>
                 )}
                 {event.name}
@@ -62,7 +63,7 @@ function SpanSections({ traceId, spanId, children }: SpanSectionsProps) {
           <KeyValueList entries={content.resource_attributes} />
         </Section>
       )}
-      {content.scope_name !== null && (
+      {isDefined(content.scope_name) && (
         <Section title="Scope">
           <ScopeName name={content.scope_name} version={content.scope_version} />
         </Section>
@@ -79,7 +80,7 @@ interface SpanDetailsProps {
 }
 
 export function SpanDetails({ ref, traceId, span, children }: SpanDetailsProps) {
-  const detached = span.depth === 0 && span.parent_span_id !== null;
+  const detached = span.depth === 0 && isDefined(span.parent_span_id);
 
   return (
     <>
@@ -88,7 +89,7 @@ export function SpanDetails({ ref, traceId, span, children }: SpanDetailsProps) 
         <Id>{span.span_id}</Id>
       </DetailsHeader>
       <Meta>
-        {span.service_name !== null && (
+        {isDefined(span.service_name) && (
           <Fact>
             <ServiceName name={span.service_name} />
           </Fact>
@@ -100,7 +101,7 @@ export function SpanDetails({ ref, traceId, span, children }: SpanDetailsProps) 
         <Fact>{formatDuration(span.duration_ms)}</Fact>
         {detached && <Fact>parent {span.parent_span_id} not received</Fact>}
       </Meta>
-      {span.status_message !== null && (
+      {isDefined(span.status_message) && (
         <Description color={span.is_error ? THEME.textError : THEME.textMuted}>
           {span.status_message}
         </Description>

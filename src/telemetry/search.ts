@@ -1,3 +1,4 @@
+import { isDefined } from "#utils/is-defined.ts";
 import { parseDuration } from "#utils/time.ts";
 
 import { substringPattern } from "./substring-pattern.ts";
@@ -35,14 +36,14 @@ function parseNumber(key: string, value: string) {
 function parseFilter(term: string): Filter | undefined {
   const match = FILTER_TERM.exec(term);
   const [, key, operator, value] = match ?? [];
-  if (key === undefined || operator === undefined || !isOperator(operator) || value === undefined) {
+  if (!isDefined(key) || !isDefined(operator) || !isOperator(operator) || !isDefined(value)) {
     return undefined;
   }
   if (!isOrdered(operator)) {
     return { key, operator, value, number: null };
   }
   const number = parseNumber(key, value);
-  return number === undefined ? undefined : { key, operator, value, number };
+  return isDefined(number) ? { key, operator, value, number } : undefined;
 }
 
 export function parseSearch(search: string) {
@@ -51,7 +52,7 @@ export function parseSearch(search: string) {
 
   for (const term of search.split(/\s+/)) {
     const filter = parseFilter(term);
-    if (filter !== undefined) {
+    if (isDefined(filter)) {
       attributes.push(filter);
     } else if (term !== "") {
       words.push(term);

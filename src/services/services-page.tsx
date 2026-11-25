@@ -16,6 +16,7 @@ import { Split } from "#ui/split.tsx";
 import { THEME } from "#ui/theme.ts";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatCount } from "#utils/number.ts";
 
 import { OperationTable } from "./operation-table.tsx";
@@ -49,7 +50,7 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
   const operationsOptions = serviceOperationsQuery(connection, serviceName);
   const { data: operations = [] } = useQuery({
     ...operationsOptions,
-    enabled: serviceName !== undefined,
+    enabled: isDefined(serviceName),
   });
   const operationSelection = useSelection(operations, (operation) => operation.name);
   const operation = operationSelection.selected;
@@ -69,7 +70,7 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
       </PageHeader>
       {serviceList.isError ? (
         <Placeholder text="Failed to load services" variant="error" />
-      ) : selected === undefined || deferredSelected === undefined ? (
+      ) : !isDefined(selected) || !isDefined(deferredSelected) ? (
         <Placeholder
           text={
             search.deferredText !== ""
@@ -110,7 +111,7 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
         <SearchInput search={search} placeholder="service name" />
         <SearchKeys search={search} />
         <FocusScope focused={browsing && region === "services"}>
-          {selected !== undefined && (
+          {isDefined(selected) && (
             <Key name="return" onPress={() => onOpenTraces(selected.service_name)}>
               traces
             </Key>
@@ -118,7 +119,7 @@ export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
           <SortKeys columns={SERVICE_SORT_COLUMNS} onChange={(action) => setSort(action)} />
         </FocusScope>
         <FocusScope focused={browsing && region === "operations"}>
-          {selected !== undefined && operation !== undefined && (
+          {isDefined(selected) && isDefined(operation) && (
             <Key name="return" onPress={() => onOpenTraces(selected.service_name, operation.name)}>
               traces
             </Key>

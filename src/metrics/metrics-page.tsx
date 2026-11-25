@@ -16,6 +16,7 @@ import { SearchKeys } from "#ui/search-keys.tsx";
 import { Split } from "#ui/split.tsx";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatShownCount } from "#utils/number.ts";
 
 import { MetricDetails } from "./metric-details.tsx";
@@ -53,7 +54,7 @@ export function MetricsPage({ onOpen }: MetricsPageProps) {
       </PageHeader>
       {metricList.isError ? (
         <Placeholder text="Failed to load metrics" variant="error" />
-      ) : selected === undefined || deferredSelected === undefined ? (
+      ) : !isDefined(selected) || !isDefined(deferredSelected) ? (
         <Placeholder
           text={search.deferredText !== "" ? "No metrics match" : "Waiting for metrics..."}
         />
@@ -73,7 +74,7 @@ export function MetricsPage({ onOpen }: MetricsPageProps) {
         <SearchInput search={search} placeholder="name, description, service or key=value" />
         <SearchKeys search={search} />
         <FocusScope focused={browsing}>
-          {selected !== undefined && (
+          {isDefined(selected) && (
             <>
               <Key name="return" onPress={() => onOpen(selected)}>
                 open
@@ -90,7 +91,7 @@ export function MetricsPage({ onOpen }: MetricsPageProps) {
             ascending={["name"]}
             onChange={(action) => setSort(action)}
           />
-          {selected !== undefined && <ScrollKeys target={detailsRef} />}
+          {isDefined(selected) && <ScrollKeys target={detailsRef} />}
           <PauseKey />
         </FocusScope>
       </KeyHints>

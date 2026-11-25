@@ -9,6 +9,7 @@ import { KeyValueList } from "#ui/key-value-list.tsx";
 import { ScrollBox } from "#ui/scroll-box.tsx";
 import { Section } from "#ui/section.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatInteger } from "#utils/number.ts";
 
 import { attributeValues } from "./attribute-values.ts";
@@ -35,7 +36,7 @@ function distinctScopes(series: Series[]) {
   const scopes = new Map<string, { id: string; name: string; version: string | null }>();
 
   for (const { scope_id, scope_name, scope_version } of series) {
-    if (scope_name !== null) {
+    if (isDefined(scope_name)) {
       scopes.set(scope_id, { id: scope_id, name: scope_name, version: scope_version });
     }
   }

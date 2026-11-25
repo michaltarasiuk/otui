@@ -10,6 +10,7 @@ import {
 import dedent from "dedent";
 import { z } from "zod";
 
+import { isDefined } from "#utils/is-defined.ts";
 import { StartupError } from "#utils/startup-error.ts";
 import { SECOND_MS } from "#utils/time.ts";
 
@@ -207,13 +208,13 @@ export async function startReceiver({
   }
 
   async function finishDeleting() {
-    while (deleting !== undefined) {
+    while (isDefined(deleting)) {
       await Promise.allSettled([deleting]);
     }
   }
 
   const pruneInterval = setInterval(() => {
-    if (deleting === undefined) {
+    if (!isDefined(deleting)) {
       void startDeleting(() => pruneTelemetry());
     }
   }, PRUNE_INTERVAL_MS);

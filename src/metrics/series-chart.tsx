@@ -7,6 +7,7 @@ import { ErrorBoundary } from "#ui/error-boundary.tsx";
 import { LineChart } from "#ui/line-chart.tsx";
 import { Section } from "#ui/section.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { MINUTE_MS, formatTime } from "#utils/time.ts";
 
 import { counterIntervals, distributionIntervals } from "./intervals.ts";
@@ -121,8 +122,7 @@ function SeriesPlot({ metric, series, color, windowStart, windowMs }: SeriesPlot
   );
 
   const end = dataUpdatedAt;
-  const start =
-    windowMs === undefined ? Math.min(windowStart, end - MIN_WINDOW_MS) : end - windowMs;
+  const start = isDefined(windowMs) ? end - windowMs : Math.min(windowStart, end - MIN_WINDOW_MS);
 
   return (
     <LineChart
@@ -149,10 +149,9 @@ interface SeriesChartProps {
 }
 
 export function SeriesChart({ metric, series, color, windowStart, windowMs }: SeriesChartProps) {
-  const title =
-    windowMs === undefined
-      ? chartTitle(metric)
-      : `${chartTitle(metric)} · last ${windowMs / MINUTE_MS} min`;
+  const title = isDefined(windowMs)
+    ? `${chartTitle(metric)} · last ${windowMs / MINUTE_MS} min`
+    : chartTitle(metric);
 
   return (
     <Section title={title}>

@@ -1,6 +1,7 @@
 import type { ColorInput } from "@opentui/core";
 
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import type { SeverityLevel } from "./severity.ts";
 
@@ -14,5 +15,5 @@ const SEVERITY_COLORS = {
 } satisfies Record<SeverityLevel, ColorInput>;
 
 export function severityColor(level: SeverityLevel | null) {
-  return level === null ? THEME.textMuted : SEVERITY_COLORS[level];
+  return isDefined(level) ? SEVERITY_COLORS[level] : THEME.textMuted;
 }

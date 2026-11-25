@@ -1,6 +1,7 @@
 import { DetailsHeader, Id, Meta, Fact, Title } from "#ui/details.tsx";
 import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { formatCount, formatShownCount } from "#utils/number.ts";
 import { formatDuration, formatTime } from "#utils/time.ts";
 
@@ -28,7 +29,7 @@ export function TraceHeader({ traceId, root, spans, matchCount, durationMs }: Tr
         <Id>{traceId}</Id>
       </DetailsHeader>
       <Meta>
-        {root.service_name !== null && (
+        {isDefined(root.service_name) && (
           <Fact>
             <ServiceName name={root.service_name} />
           </Fact>

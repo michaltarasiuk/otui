@@ -11,6 +11,7 @@ import { Placeholder } from "#ui/placeholder.tsx";
 import { RegionKeys, useRegion } from "#ui/region.tsx";
 import { Split } from "#ui/split.tsx";
 import { useSelection } from "#ui/use-selection.ts";
+import { isDefined } from "#utils/is-defined.ts";
 
 import { OperationDiffTable } from "./operation-diff-table.tsx";
 import { SpanDiffTable } from "./span-diff-table.tsx";
@@ -64,9 +65,9 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
   const [region, setRegion] = useRegion(REGIONS);
 
   function openSlower({ before, after }: SpanDiff) {
-    if (after !== undefined && (before === undefined || after.duration_ms >= before.duration_ms)) {
+    if (isDefined(after) && (!isDefined(before) || after.duration_ms >= before.duration_ms)) {
       onOpenTrace(afterId, after.span_id);
-    } else if (before !== undefined) {
+    } else if (isDefined(before)) {
       onOpenTrace(beforeId, before.span_id);
     }
   }
@@ -75,7 +76,7 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
     <box flexGrow={1}>
       {beforeSpans.isError || afterSpans.isError ? (
         <Placeholder text="Failed to load traces" variant="error" />
-      ) : root === undefined || beforeSpans.data.length === 0 ? (
+      ) : !isDefined(root) || beforeSpans.data.length === 0 ? (
         <Placeholder text="A compared trace is no longer available" />
       ) : (
         <>
@@ -110,7 +111,7 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
           back
         </Key>
         <FocusScope focused={region === "spans"}>
-          {selected !== undefined && (
+          {isDefined(selected) && (
             <Key
               name="return"
               description="open the span in the trace where it took longer"

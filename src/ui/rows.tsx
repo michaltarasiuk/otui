@@ -3,6 +3,7 @@ import { useBindings } from "@opentui/keymap/react";
 import { createContext, use, useEffectEvent, useRef, useState } from "react";
 
 import type { Step } from "#utils/cycle.ts";
+import { isDefined } from "#utils/is-defined.ts";
 import { clamp } from "#utils/number.ts";
 
 import { useFocus } from "./focus.tsx";
@@ -99,7 +100,7 @@ export function Rows<T>({ selection, halfPageKeys = false, children }: RowsProps
       overflow="hidden"
       onSizeChange={() => measure()}
       onMouseScroll={({ scroll }) => {
-        if (!claimScroll() || scroll === undefined) {
+        if (!claimScroll() || !isDefined(scroll)) {
           return;
         }
         if (scroll.direction === "down") {
@@ -135,7 +136,7 @@ export function Selectable<T>({ selection, item, children }: SelectableProps<T>)
   const { requestFocus } = useFocus();
 
   const key = selection.keyOf(item);
-  const selected = selection.selected !== undefined && selection.keyOf(selection.selected) === key;
+  const selected = isDefined(selection.selected) && selection.keyOf(selection.selected) === key;
 
   return (
     <box
