@@ -211,13 +211,7 @@ export function WaterfallPage({
                   </StepKeys>
                 )}
                 {shown.some((span) => span.is_error) && (
-                  <ErrorKeys
-                    onStep={(step) =>
-                      selection.select(
-                        findNextIndex(shown, selection.index, step, (span) => span.is_error),
-                      )
-                    }
-                  />
+                  <ErrorKeys onStep={(step) => selection.jump(step, (span) => span.is_error)} />
                 )}
                 {descendantCount(spans, spans.indexOf(selected)) > 0 && (
                   <Key

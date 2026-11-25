@@ -20,7 +20,6 @@ import { ServiceName } from "#ui/service-name.tsx";
 import { THEME } from "#ui/theme.ts";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
-import { findNextIndex } from "#utils/cycle.ts";
 import { formatShownCount } from "#utils/number.ts";
 import { formatDuration } from "#utils/time.ts";
 
@@ -162,13 +161,7 @@ export function TracesPage({
             </>
           )}
           {traces.some((trace) => hasErrors(trace)) && (
-            <ErrorKeys
-              onStep={(step) =>
-                selection.select(
-                  findNextIndex(traces, selection.index, step, (trace) => hasErrors(trace)),
-                )
-              }
-            />
+            <ErrorKeys onStep={(step) => selection.jump(step, (trace) => hasErrors(trace))} />
           )}
         </FocusScope>
         <FocusScope focused={browsing}>

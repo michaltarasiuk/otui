@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { findNextIndex, type Step } from "#utils/cycle.ts";
 import { clamp } from "#utils/number.ts";
 
 export function useSelection<T>(
@@ -26,11 +27,11 @@ export function useSelection<T>(
     index: selectedIndex,
     selected: items[selectedIndex],
     keyOf,
-    select(index: number) {
-      setSelectedKey((key) => keyAt(index) ?? key);
-    },
     move(offset: number) {
       setSelectedKey((key) => keyAt(indexOf(key) + offset) ?? key);
+    },
+    jump(step: Step, match: (item: T) => boolean) {
+      setSelectedKey((key) => keyAt(findNextIndex(items, indexOf(key), step, match)) ?? key);
     },
     selectKey(key: string) {
       setSelectedKey(key);

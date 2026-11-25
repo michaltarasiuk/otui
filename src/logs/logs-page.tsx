@@ -21,7 +21,7 @@ import { SearchKeys } from "#ui/search-keys.tsx";
 import { Split } from "#ui/split.tsx";
 import { useSearch } from "#ui/use-search.ts";
 import { useSelection } from "#ui/use-selection.ts";
-import { cycle, findNextIndex } from "#utils/cycle.ts";
+import { cycle } from "#utils/cycle.ts";
 import { formatShownCount } from "#utils/number.ts";
 import { shortId } from "#utils/text.ts";
 
@@ -118,11 +118,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
         <SearchKeys search={search} />
         <FocusScope focused={browsing}>
           {logs.some((log) => isError(log)) && (
-            <ErrorKeys
-              onStep={(step) =>
-                selection.select(findNextIndex(logs, selection.index, step, (log) => isError(log)))
-              }
-            />
+            <ErrorKeys onStep={(step) => selection.jump(step, (log) => isError(log))} />
           )}
           {selectedTraceId !== null && (
             <>

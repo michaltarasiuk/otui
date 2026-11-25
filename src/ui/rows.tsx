@@ -43,8 +43,8 @@ export function Rows<T>({ selection, halfPageKeys = false, children }: RowsProps
   const moveBy = useEffectEvent((offset: number) => selection.move(offset));
   const movePage = useEffectEvent((direction: Step) => moveBy(direction * visibleRowCount));
   const moveHalfPage = useEffectEvent((direction: Step) => moveBy(direction * halfPage));
-  const moveTo = useEffectEvent((index: number) => selection.select(index));
-  const moveToLast = useEffectEvent(() => selection.select(items.length - 1));
+  const moveToFirst = useEffectEvent(() => moveBy(-items.length));
+  const moveToLast = useEffectEvent(() => moveBy(items.length));
 
   useBindings(
     () => ({
@@ -54,7 +54,7 @@ export function Rows<T>({ selection, halfPageKeys = false, children }: RowsProps
         { name: "rows.previous", desc: "previous row", run: () => moveBy(-1) },
         { name: "rows.next-page", desc: "next page", run: () => movePage(1) },
         { name: "rows.previous-page", desc: "previous page", run: () => movePage(-1) },
-        { name: "rows.first", desc: "first row", run: () => moveTo(0) },
+        { name: "rows.first", desc: "first row", run: () => moveToFirst() },
         { name: "rows.last", desc: "last row", run: () => moveToLast() },
       ],
       bindings: [

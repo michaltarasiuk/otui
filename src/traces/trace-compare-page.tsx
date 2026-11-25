@@ -11,7 +11,6 @@ import { Placeholder } from "#ui/placeholder.tsx";
 import { RegionKeys, useRegion } from "#ui/region.tsx";
 import { Split } from "#ui/split.tsx";
 import { useSelection } from "#ui/use-selection.ts";
-import { findNextIndex } from "#utils/cycle.ts";
 
 import { OperationDiffTable } from "./operation-diff-table.tsx";
 import { SpanDiffTable } from "./span-diff-table.tsx";
@@ -126,11 +125,7 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
               backward="shift+e"
               description="next added or removed span"
               backwardDescription="previous added or removed span"
-              onStep={(step) =>
-                selection.select(
-                  findNextIndex(rows, selection.index, step, (row) => isAddedOrRemoved(row)),
-                )
-              }
+              onStep={(step) => selection.jump(step, (row) => isAddedOrRemoved(row))}
             >
               added/removed
             </StepKeys>
