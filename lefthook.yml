@@ -1,34 +1,33 @@
 pre-commit:
   parallel: true
-  commands:
-    lint:
+  jobs:
+    - name: lint
       glob: "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
-      run: bunx oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+      run: bunx oxlint --fix {staged_files}
       stage_fixed: true
-    format:
+
+    - name: format
       run: bunx oxfmt --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
-    images:
+
+    - name: images
       glob: "*.png"
-      run: |
-        command -v pngquant >/dev/null && command -v oxipng >/dev/null || {
-          echo "Install pngquant and oxipng to compress screenshots: brew install pngquant oxipng"
-          exit 1
-        }
-        pngquant --quality=80-95 --skip-if-larger --force --ext .png {staged_files} || { code=$?; [ $code -eq 98 ] || [ $code -eq 99 ]; }
-        oxipng -o max --strip safe -q {staged_files}
+      run: oxipng -o max --strip safe -q {staged_files}
+      fail_text: "Install oxipng: brew install oxipng"
       stage_fixed: true
 
 pre-push:
-  commands:
-    typecheck:
+  jobs:
+    - name: typecheck
       run: bun run typecheck
 
 commit-msg:
-  commands:
-    conventional:
-      run: |
-        head -n 1 {1} | grep -qE '^(feat|fix|refactor|test|docs|chore): [a-z].*[^.]$' || {
-          echo "Commit subject must be '<type>: <lowercase subject>' (feat, fix, refactor, test, docs, chore), without a scope or trailing period"
-          exit 1
-        }
+  jobs:
+    - name: subject
+      skip: [merge]
+      env:
+        PATTERN: "(feat|fix|refactor|test|docs|chore): [a-z].*[^.]|Revert .*"
+      run: head -n 1 {1} | grep -qxE "$PATTERN"
+      fail_text: >-
+        Use '<type>: <subject>' with a type of feat, fix, refactor, test, docs
+        or chore, a lowercase first letter, no scope and no trailing period.
