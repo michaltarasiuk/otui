@@ -28,11 +28,12 @@ interface MetricsPageProps {
 }
 
 export function MetricsPage({ onOpen }: MetricsPageProps) {
+  const connection = useConnection();
   const search = useSearch();
   const [sort, setSort] = useState(BY_NAME);
   const deferredSort = useDeferredValue(sort);
+  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
-  const connection = useConnection();
   const query = { search: search.deferredText, sort: deferredSort };
   const metricList = useSuspenseQuery(metricListQuery(connection, query));
   const { metrics, totalCount } = metricList.data;
@@ -42,8 +43,6 @@ export function MetricsPage({ onOpen }: MetricsPageProps) {
   const deferredSelected = useDeferredValue(selected);
 
   const browsing = !search.isEditing;
-
-  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
   return (
     <box flexGrow={1}>

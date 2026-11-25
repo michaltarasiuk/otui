@@ -57,12 +57,13 @@ export function WaterfallPage({
   onOpenLogs,
   onOpenTrace,
 }: WaterfallPageProps) {
+  const connection = useConnection();
   const search = useSearch();
   const [jumping, setJumping] = useState(false);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
-  const connection = useConnection();
   const [traceSpans, spanMatches] = useSuspenseQueries({
     queries: [
       traceSpansQuery(connection, traceId),
@@ -125,8 +126,6 @@ export function WaterfallPage({
   }
 
   const browsing = !search.isEditing;
-
-  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
   return (
     <box flexGrow={1}>

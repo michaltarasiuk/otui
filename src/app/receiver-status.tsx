@@ -34,7 +34,6 @@ interface ReceiverStatusProps {
 
 export function ReceiverStatus({ httpUrl, grpcUrl, mcpUrl }: ReceiverStatusProps) {
   const paused = usePaused();
-
   const connection = useConnection();
   const { data: counters = null } = useQuery(receiverCountersQuery(connection, httpUrl));
 

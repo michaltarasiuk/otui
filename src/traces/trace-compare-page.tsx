@@ -37,17 +37,18 @@ interface TraceComparePageProps {
 }
 
 export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceComparePageProps) {
+  const connection = useConnection();
   const [swapped, setSwapped] = useState(false);
   const deferredSwapped = useDeferredValue(swapped);
+  const [changedOnly, setChangedOnly] = useState(false);
+
   const [beforeId, afterId] = deferredSwapped ? [after, before] : [before, after];
 
-  const connection = useConnection();
   const [beforeSpans, afterSpans] = useSuspenseQueries({
     queries: [traceSpansQuery(connection, beforeId), traceSpansQuery(connection, afterId)],
   });
   const [root] = afterSpans.data;
 
-  const [changedOnly, setChangedOnly] = useState(false);
   const allRows = diffSpans(beforeSpans.data, afterSpans.data);
   const rows = changedOnly ? allRows.filter((row) => hasChanged(row)) : allRows;
   const selection = useSelection(rows, (row) => row.id);

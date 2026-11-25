@@ -36,6 +36,9 @@ interface AppProps {
 }
 
 export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
+  const queryClient = useQueryClient();
+  const keymap = useKeymap();
+  const editing = useEditing();
   const {
     tab,
     services,
@@ -55,7 +58,6 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
   const [clears, setClears] = useState(0);
   const [help, setHelp] = useState<HelpEntry[]>();
   const [marked, setMarked] = useState<MarkedTrace>();
-  const queryClient = useQueryClient();
 
   async function clear() {
     try {
@@ -70,8 +72,6 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
     await queryClient.resetQueries();
   }
 
-  const keymap = useKeymap();
-  const editing = useEditing();
   const keys = (
     <>
       {!editing && (

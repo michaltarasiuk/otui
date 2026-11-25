@@ -26,10 +26,9 @@ interface TabsProps {
 
 export function Tabs({ current, onSelect }: TabsProps) {
   const { focused, keysEnabled, requestFocus } = useFocus();
+  const tabsRef = useRef<TabSelectRenderable>(null);
 
   const index = TABS.findIndex((tab) => tab.value === current);
-
-  const tabsRef = useRef<TabSelectRenderable>(null);
 
   useEffect(() => {
     tabsRef.current?.setSelectedIndex(index);

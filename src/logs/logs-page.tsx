@@ -52,12 +52,14 @@ interface LogsPageProps {
 }
 
 export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }: LogsPageProps) {
+  const connection = useConnection();
+  const { height = 0 } = useRegionSize();
   const search = useSearch();
   const [minSeverity, setMinSeverity] = useState<MinSeverity>(undefined);
   const deferredMinSeverity = useDeferredValue(minSeverity);
   const timeRange = useTimeRange();
+  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
-  const connection = useConnection();
   const filter = { search: search.deferredText, minSeverity: deferredMinSeverity, traceId, spanId };
   const query = { ...filter, timeRange: timeRange.deferredSelected };
   const [logList, logTimeline] = useSuspenseQueries({
@@ -77,10 +79,6 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
     traceId !== undefined ||
     timeRange.deferredSelected !== undefined;
   const browsing = !search.isEditing;
-
-  const { height = 0 } = useRegionSize();
-
-  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
   return (
     <box flexGrow={1}>

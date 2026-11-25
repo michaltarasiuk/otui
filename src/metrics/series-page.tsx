@@ -35,9 +35,10 @@ interface SeriesPageProps {
 }
 
 export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
-  const [chartWindow, setChartWindow] = useState<(typeof CHART_WINDOWS)[number]>();
-
   const connection = useConnection();
+  const [chartWindow, setChartWindow] = useState<(typeof CHART_WINDOWS)[number]>();
+  const detailsRef = useRef<ScrollBoxRenderable>(null);
+
   const metricSeries = useSuspenseQuery(metricSeriesQuery(connection, metric));
   const { data: series } = metricSeries;
   const columns = attributeColumns(series);
@@ -60,8 +61,6 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
 
   const regions = exemplars.length > 0 ? (["series", "exemplars"] as const) : (["series"] as const);
   const [region, setRegion] = useRegion(regions);
-
-  const detailsRef = useRef<ScrollBoxRenderable>(null);
 
   return (
     <box flexGrow={1}>

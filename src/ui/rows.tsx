@@ -21,8 +21,8 @@ interface RowsProps<T> {
 export function Rows<T>({ items, selection, halfPageKeys = false, children }: RowsProps<T>) {
   const { focused, keysEnabled } = useFocus();
   const claimScroll = useScrollGesture();
-
   const [measured, setMeasured] = useState({ height: items.length, itemCount: items.length });
+  const rowsRef = useRef<BoxRenderable>(null);
 
   const visibleRowCount = measured.height < measured.itemCount ? measured.height : items.length;
   const hiddenRowCount = items.length - visibleRowCount;
@@ -81,8 +81,6 @@ export function Rows<T>({ items, selection, halfPageKeys = false, children }: Ro
     }),
     [focused, keysEnabled, halfPageKeys],
   );
-
-  const rowsRef = useRef<BoxRenderable>(null);
 
   function measure() {
     setMeasured({ height: rowsRef.current?.height ?? 0, itemCount: items.length });

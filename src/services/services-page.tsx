@@ -32,11 +32,11 @@ interface ServicesPageProps {
 }
 
 export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
+  const connection = useConnection();
   const search = useSearch();
   const [sort, setSort] = useState(BUSIEST_FIRST);
   const deferredSort = useDeferredValue(sort);
 
-  const connection = useConnection();
   const query = { search: search.deferredText, sort: deferredSort };
   const serviceList = useSuspenseQuery(serviceListQuery(connection, query));
   const { data: services } = serviceList;

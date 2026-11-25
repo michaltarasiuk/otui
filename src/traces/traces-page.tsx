@@ -62,6 +62,8 @@ export function TracesPage({
   onCompare,
   onBack,
 }: TracesPageProps) {
+  const connection = useConnection();
+  const { height = 0 } = useRegionSize();
   const search = useSearch();
   const [errorsOnly, setErrorsOnly] = useState(false);
   const deferredErrorsOnly = useDeferredValue(errorsOnly);
@@ -69,7 +71,6 @@ export function TracesPage({
   const [sort, setSort] = useState(operation === undefined ? NEWEST_FIRST : SLOWEST_FIRST);
   const deferredSort = useDeferredValue(sort);
 
-  const connection = useConnection();
   const filter = {
     search: search.deferredText,
     errorsOnly: deferredErrorsOnly,
@@ -94,8 +95,6 @@ export function TracesPage({
     timeRange.deferredSelected !== undefined ||
     service !== undefined;
   const browsing = !search.isEditing;
-
-  const { height = 0 } = useRegionSize();
 
   return (
     <box flexGrow={1}>
