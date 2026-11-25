@@ -110,9 +110,9 @@ export function SeriesPage({ metric, onBack, onOpenTrace }: SeriesPageProps) {
         </Key>
         <FocusScope focused={region === "exemplars"}>
           <ListKeys
+            selection={exemplarSelection}
             description="next exemplar"
             backwardDescription="previous exemplar"
-            onStep={(step) => exemplarSelection.move(step)}
           />
           {isDefined(exemplarTraceId) && (
             <Key

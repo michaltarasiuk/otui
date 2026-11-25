@@ -207,9 +207,7 @@ export function WaterfallPage({
                     next match
                   </StepKeys>
                 )}
-                {shown.some((span) => span.is_error) && (
-                  <ErrorKeys onStep={(step) => selection.jump(step, (span) => span.is_error)} />
-                )}
+                <ErrorKeys selection={selection} isError={(span) => span.is_error} />
                 {descendantCount(spans, selected) > 0 && (
                   <Key
                     name="space"
@@ -240,9 +238,9 @@ export function WaterfallPage({
           )}
           <FocusScope focused={region === "links"}>
             <ListKeys
+              selection={linkSelection}
               description="next link"
               backwardDescription="previous link"
-              onStep={(step) => linkSelection.move(step)}
             />
             {isDefined(link) && canOpenLink(link, traceId, spans) && (
               <Key name="return" onPress={() => openLink(link)}>

@@ -8,6 +8,7 @@ import type { Sort } from "#utils/sort.ts";
 import { COLUMN_GAP } from "./columns.ts";
 import { FocusRoot, useFocus } from "./focus.tsx";
 import { THEME } from "./theme.ts";
+import type { Selection } from "./use-selection.ts";
 
 export const KEY_HINTS_HEIGHT = 1;
 
@@ -96,21 +97,34 @@ export function StepKeys({
   );
 }
 
-interface ListKeysProps {
+interface ListKeysProps<T> {
+  selection: Selection<T>;
   description: string;
   backwardDescription: string;
-  onStep: (step: Step) => void;
 }
 
-export function ListKeys({ description, backwardDescription, onStep }: ListKeysProps) {
+export function ListKeys<T>({ selection, description, backwardDescription }: ListKeysProps<T>) {
   return (
     <>
-      <Key name="down" description={description} onPress={() => onStep(1)} />
-      <Key name="up" description={backwardDescription} onPress={() => onStep(-1)} />
-      <Key name="j" description={description} onPress={() => onStep(1)} />
-      <Key name="k" description={backwardDescription} onPress={() => onStep(-1)} />
+      <Key name="down" description={description} onPress={() => selection.move(1)} />
+      <Key name="up" description={backwardDescription} onPress={() => selection.move(-1)} />
+      <Key name="j" description={description} onPress={() => selection.move(1)} />
+      <Key name="k" description={backwardDescription} onPress={() => selection.move(-1)} />
     </>
   );
+}
+
+interface JumpKeysProps<T> extends Omit<StepKeysProps, "onStep"> {
+  selection: Selection<T>;
+  match: (item: T) => boolean;
+}
+
+export function JumpKeys<T>({ selection, match, ...keys }: JumpKeysProps<T>) {
+  if (!selection.items.some((item) => match(item))) {
+    return null;
+  }
+
+  return <StepKeys {...keys} onStep={(step) => selection.jump(step, (item) => match(item))} />;
 }
 
 interface SortKeysProps<C> {
@@ -140,19 +154,21 @@ export function SortKeys<C>({ columns, ascending = [], onChange }: SortKeysProps
   );
 }
 
-interface ErrorKeysProps {
-  onStep: (step: Step) => void;
+interface ErrorKeysProps<T> {
+  selection: Selection<T>;
+  isError: (item: T) => boolean;
 }
 
-export function ErrorKeys({ onStep }: ErrorKeysProps) {
+export function ErrorKeys<T>({ selection, isError }: ErrorKeysProps<T>) {
   return (
-    <StepKeys
+    <JumpKeys
       forward="e"
       backward="shift+e"
       backwardDescription="previous error"
-      onStep={(step) => onStep(step)}
+      selection={selection}
+      match={(item) => isError(item)}
     >
       next error
-    </StepKeys>
+    </JumpKeys>
   );
 }

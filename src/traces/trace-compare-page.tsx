@@ -4,7 +4,7 @@ import { useDeferredValue, useState } from "react";
 import { useConnection } from "#query/connection.ts";
 import { CopyKey } from "#ui/clipboard.tsx";
 import { FocusScope } from "#ui/focus.tsx";
-import { Key, KeyHints, StepKeys } from "#ui/key-hints.tsx";
+import { JumpKeys, Key, KeyHints } from "#ui/key-hints.tsx";
 import { PageHeader } from "#ui/page-header.tsx";
 import { PauseKey } from "#ui/pause.tsx";
 import { Placeholder } from "#ui/placeholder.tsx";
@@ -120,17 +120,16 @@ export function TraceComparePage({ before, after, onBack, onOpenTrace }: TraceCo
               open
             </Key>
           )}
-          {rows.some((row) => isAddedOrRemoved(row)) && (
-            <StepKeys
-              forward="e"
-              backward="shift+e"
-              description="next added or removed span"
-              backwardDescription="previous added or removed span"
-              onStep={(step) => selection.jump(step, (row) => isAddedOrRemoved(row))}
-            >
-              added/removed
-            </StepKeys>
-          )}
+          <JumpKeys
+            forward="e"
+            backward="shift+e"
+            description="next added or removed span"
+            backwardDescription="previous added or removed span"
+            selection={selection}
+            match={(row) => isAddedOrRemoved(row)}
+          >
+            added/removed
+          </JumpKeys>
           <Key
             name="d"
             description={changedOnly ? "show every span" : "show only the spans that changed"}

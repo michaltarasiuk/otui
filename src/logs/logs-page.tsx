@@ -118,9 +118,7 @@ export function LogsPage({ traceId, spanId, onTraceChange, onOpenTrace, onBack }
         <SearchInput search={search} placeholder="body, service, trace ID or key=value" />
         <SearchKeys search={search} />
         <FocusScope focused={browsing}>
-          {logs.some((log) => isError(log)) && (
-            <ErrorKeys onStep={(step) => selection.jump(step, (log) => isError(log))} />
-          )}
+          <ErrorKeys selection={selection} isError={(log) => isError(log)} />
           {isDefined(selectedTraceId) && (
             <>
               <Key

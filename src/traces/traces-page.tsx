@@ -161,9 +161,7 @@ export function TracesPage({
               </CopyKey>
             </>
           )}
-          {traces.some((trace) => hasErrors(trace)) && (
-            <ErrorKeys onStep={(step) => selection.jump(step, (trace) => hasErrors(trace))} />
-          )}
+          <ErrorKeys selection={selection} isError={(trace) => hasErrors(trace)} />
         </FocusScope>
         <FocusScope focused={browsing}>
           {search.text === "" &&
