@@ -143,7 +143,7 @@ export function Selectable<T>({ selection, item, children }: SelectableProps<T>)
       onMouseDown={(event) => {
         if (event.button === MouseButton.LEFT) {
           requestFocus();
-          selection.selectKey(key);
+          selection.select(key);
         }
       }}
     >

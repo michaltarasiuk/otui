@@ -33,7 +33,7 @@ export function useSelection<T>(
     jump(step: Step, match: (item: T) => boolean) {
       setSelectedKey((key) => keyAt(findNextIndex(items, indexOf(key), step, match)) ?? key);
     },
-    selectKey(key: string) {
+    select(key: string) {
       setSelectedKey(key);
     },
   };

@@ -87,7 +87,7 @@ export function WaterfallPage({
 
   function selectSpan(spanId: string) {
     setCollapsed((collapsed) => expandTo(spans, collapsed, spanId));
-    selection.selectKey(spanId);
+    selection.select(spanId);
   }
 
   function stepToMatch(index: number, step: Step) {
