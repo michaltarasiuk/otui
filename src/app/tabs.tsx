@@ -5,7 +5,7 @@ import { useFocus } from "#ui/focus.tsx";
 import { THEME } from "#ui/theme.ts";
 import { isDefined } from "#utils/is-defined.ts";
 
-import type { Tab } from "./use-pages.ts";
+import type { Tab } from "./router.tsx";
 
 const TAB_WIDTH = 10;
 

@@ -21,10 +21,9 @@ import { isDefined } from "#utils/is-defined.ts";
 import { activeHelp, Help, type HelpEntry } from "./help.tsx";
 import { PageError, PageLoading } from "./page-fallback.tsx";
 import { ReceiverStatus } from "./receiver-status.tsx";
-import { Screen } from "./screen.tsx";
+import { Route, Routes, useRouter } from "./router.tsx";
 import { Tabs } from "./tabs.tsx";
 import { useEditing } from "./use-editing.ts";
-import { usePages } from "./use-pages.ts";
 import { Content, TopBar, Window } from "./window.tsx";
 
 const REGIONS = ["tabs", "content"] as const;
@@ -40,21 +39,8 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
   const queryClient = useQueryClient();
   const keymap = useKeymap();
   const editing = useEditing();
-  const {
-    tab,
-    services,
-    map,
-    traces,
-    trace,
-    compare,
-    metrics,
-    series,
-    logs,
-    selectTab,
-    open,
-    replace,
-    reset,
-  } = usePages();
+  const { tab, location, canGoBack, back, navigate, selectTab, reset } = useRouter();
+  const rootBack = canGoBack ? back : undefined;
   const [region, setRegion] = useRegion(REGIONS);
   const [clears, setClears] = useState(0);
   const [help, setHelp] = useState<HelpEntry[]>();
@@ -107,125 +93,145 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
           >
             <Content>
               <Suspense fallback={<PageLoading />}>
-                <Screen mode={services.mode}>
-                  <ErrorBoundary fallback={<PageError text="Failed to load services" />}>
-                    <ServicesPage
-                      onOpenTraces={(service, operation) =>
-                        open({ name: "traces", service, operation })
-                      }
-                      onOpenMap={() => open({ name: "map" })}
-                    />
-                  </ErrorBoundary>
-                </Screen>
-                {isDefined(map) && (
-                  <Screen mode={map.mode}>
-                    <ErrorBoundary
-                      fallback={
-                        <PageError text="Failed to load the service map" onBack={map.back} />
-                      }
-                    >
-                      <ServiceMapPage
-                        onOpenTraces={(service) => open({ name: "traces", service })}
-                        onBack={map.back}
-                      />
-                    </ErrorBoundary>
-                  </Screen>
-                )}
-                <Screen mode={traces.mode}>
-                  <ErrorBoundary
-                    fallback={<PageError text="Failed to load traces" onBack={traces.back} />}
-                  >
-                    <Fragment key={traces.service}>
-                      <TracesPage
-                        key={traces.operation}
-                        service={traces.service}
-                        operation={traces.operation}
-                        marked={marked}
-                        onServiceChange={(service) => replace({ name: "traces", service })}
-                        onOpen={(traceId, spanId) => open({ name: "trace", traceId, spanId })}
-                        onMark={(marked) => setMarked(marked)}
-                        onCompare={(before, after) => open({ name: "compare", before, after })}
-                        onBack={traces.back}
-                      />
-                    </Fragment>
-                  </ErrorBoundary>
-                </Screen>
-                {isDefined(compare) && (
-                  <Screen mode={compare.mode}>
-                    <ErrorBoundary
-                      fallback={<PageError text="Failed to load traces" onBack={compare.back} />}
-                    >
-                      <Fragment key={compare.before}>
-                        <TraceComparePage
-                          key={compare.after}
-                          before={compare.before}
-                          after={compare.after}
-                          onBack={compare.back}
+                <Routes location={location}>
+                  <Route page="services">
+                    {() => (
+                      <ErrorBoundary fallback={<PageError text="Failed to load services" />}>
+                        <ServicesPage
+                          onOpenTraces={(service, operation) =>
+                            navigate({ page: "traces", service, operation })
+                          }
+                          onOpenMap={() => navigate({ page: "map" })}
+                        />
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="map">
+                    {() => (
+                      <ErrorBoundary
+                        fallback={<PageError text="Failed to load the service map" onBack={back} />}
+                      >
+                        <ServiceMapPage
+                          onOpenTraces={(service) => navigate({ page: "traces", service })}
+                          onBack={back}
+                        />
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="traces">
+                    {({ service, operation }) => (
+                      <ErrorBoundary
+                        fallback={<PageError text="Failed to load traces" onBack={rootBack} />}
+                      >
+                        <Fragment key={service}>
+                          <TracesPage
+                            key={operation}
+                            service={service}
+                            operation={operation}
+                            marked={marked}
+                            onServiceChange={(service) =>
+                              navigate({ page: "traces", service }, { replace: true })
+                            }
+                            onOpen={(traceId, spanId) =>
+                              navigate({ page: "trace", traceId, spanId })
+                            }
+                            onMark={(marked) => setMarked(marked)}
+                            onCompare={(before, after) =>
+                              navigate({ page: "compare", before, after })
+                            }
+                            onBack={rootBack}
+                          />
+                        </Fragment>
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="compare">
+                    {({ before, after }) => (
+                      <ErrorBoundary
+                        fallback={<PageError text="Failed to load traces" onBack={back} />}
+                      >
+                        <Fragment key={before}>
+                          <TraceComparePage
+                            key={after}
+                            before={before}
+                            after={after}
+                            onBack={back}
+                            onOpenTrace={(traceId, spanId) =>
+                              navigate({ page: "trace", traceId, spanId })
+                            }
+                          />
+                        </Fragment>
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="trace">
+                    {({ traceId, spanId }) => (
+                      <ErrorBoundary
+                        fallback={<PageError text="Failed to load trace" onBack={back} />}
+                      >
+                        <Fragment key={traceId}>
+                          <WaterfallPage
+                            key={spanId}
+                            traceId={traceId}
+                            spanId={spanId}
+                            marked={marked}
+                            onBack={back}
+                            onMark={(marked) => setMarked(marked)}
+                            onCompare={(before, after) =>
+                              navigate({ page: "compare", before, after })
+                            }
+                            onOpenLogs={(spanId) => navigate({ page: "logs", traceId, spanId })}
+                            onOpenTrace={(traceId, spanId) =>
+                              navigate({ page: "trace", traceId, spanId })
+                            }
+                          />
+                        </Fragment>
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="metrics">
+                    {() => (
+                      <ErrorBoundary fallback={<PageError text="Failed to load metrics" />}>
+                        <MetricsPage onOpen={(metric) => navigate({ page: "series", metric })} />
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="series">
+                    {({ metric }) => (
+                      <ErrorBoundary
+                        fallback={<PageError text="Failed to load metric" onBack={back} />}
+                      >
+                        <SeriesPage
+                          key={metric.metric_id}
+                          metric={metric}
+                          onBack={back}
                           onOpenTrace={(traceId, spanId) =>
-                            open({ name: "trace", traceId, spanId })
+                            navigate({ page: "trace", traceId, spanId })
                           }
                         />
-                      </Fragment>
-                    </ErrorBoundary>
-                  </Screen>
-                )}
-                {isDefined(trace) && (
-                  <Screen mode={trace.mode}>
-                    <ErrorBoundary
-                      fallback={<PageError text="Failed to load trace" onBack={trace.back} />}
-                    >
-                      <Fragment key={trace.traceId}>
-                        <WaterfallPage
-                          key={trace.spanId}
-                          traceId={trace.traceId}
-                          spanId={trace.spanId}
-                          marked={marked}
-                          onBack={trace.back}
-                          onMark={(marked) => setMarked(marked)}
-                          onCompare={(before, after) => open({ name: "compare", before, after })}
-                          onOpenLogs={(spanId) =>
-                            open({ name: "logs", traceId: trace.traceId, spanId })
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                  <Route page="logs">
+                    {({ traceId, spanId }) => (
+                      <ErrorBoundary
+                        fallback={<PageError text="Failed to load logs" onBack={rootBack} />}
+                      >
+                        <LogsPage
+                          traceId={traceId}
+                          spanId={spanId}
+                          onTraceChange={(traceId) =>
+                            navigate({ page: "logs", traceId }, { replace: true })
                           }
                           onOpenTrace={(traceId, spanId) =>
-                            open({ name: "trace", traceId, spanId })
+                            navigate({ page: "trace", traceId, spanId })
                           }
+                          onBack={rootBack}
                         />
-                      </Fragment>
-                    </ErrorBoundary>
-                  </Screen>
-                )}
-                <Screen mode={metrics.mode}>
-                  <ErrorBoundary fallback={<PageError text="Failed to load metrics" />}>
-                    <MetricsPage onOpen={(metric) => open({ name: "series", metric })} />
-                  </ErrorBoundary>
-                </Screen>
-                {isDefined(series) && (
-                  <Screen mode={series.mode}>
-                    <ErrorBoundary
-                      fallback={<PageError text="Failed to load metric" onBack={series.back} />}
-                    >
-                      <SeriesPage
-                        key={series.metric.metric_id}
-                        metric={series.metric}
-                        onBack={series.back}
-                        onOpenTrace={(traceId, spanId) => open({ name: "trace", traceId, spanId })}
-                      />
-                    </ErrorBoundary>
-                  </Screen>
-                )}
-                <Screen mode={logs.mode}>
-                  <ErrorBoundary
-                    fallback={<PageError text="Failed to load logs" onBack={logs.back} />}
-                  >
-                    <LogsPage
-                      traceId={logs.traceId}
-                      spanId={logs.spanId}
-                      onTraceChange={(traceId) => replace({ name: "logs", traceId })}
-                      onOpenTrace={(traceId, spanId) => open({ name: "trace", traceId, spanId })}
-                      onBack={logs.back}
-                    />
-                  </ErrorBoundary>
-                </Screen>
+                      </ErrorBoundary>
+                    )}
+                  </Route>
+                </Routes>
               </Suspense>
             </Content>
           </FocusScope>
