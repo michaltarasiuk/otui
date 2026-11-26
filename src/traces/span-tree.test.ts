@@ -32,8 +32,6 @@ function span(
   };
 }
 
-// root ─┬─ a ── a1
-//       └─ b
 const SPANS = [
   span("root", null, 0, 0, 100),
   span("a", "root", 1, 0, 60),
