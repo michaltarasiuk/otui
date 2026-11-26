@@ -14,7 +14,7 @@ type Action = (selection: Selection<string>, setItems: (items: string[]) => void
 
 interface SelectionProbeProps {
   items: string[];
-  initialKey?: string | undefined;
+  initialKey?: string;
   keys: Record<string, Action>;
 }
 

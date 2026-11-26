@@ -8,12 +8,12 @@ export type Tab = "services" | "traces" | "metrics" | "logs";
 export type To =
   | { page: "services" }
   | { page: "map" }
-  | { page: "traces"; service?: string | undefined; operation?: string | undefined }
-  | { page: "trace"; traceId: string; spanId?: string | undefined }
+  | { page: "traces"; service?: string; operation?: string }
+  | { page: "trace"; traceId: string; spanId?: string }
   | { page: "compare"; before: string; after: string }
   | { page: "metrics" }
   | { page: "series"; metric: Metric }
-  | { page: "logs"; traceId?: string | undefined; spanId?: string | undefined };
+  | { page: "logs"; traceId?: string; spanId?: string };
 
 type Page = To["page"];
 

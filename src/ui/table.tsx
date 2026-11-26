@@ -21,9 +21,9 @@ export function sortDirection<C>(sort: Sort<C>, column: C): SortDirection | unde
 }
 
 interface CellLayout {
-  width?: number | undefined;
-  grow?: number | undefined;
-  align?: Align | undefined;
+  width?: number;
+  grow?: number;
+  align?: Align;
 }
 
 function cellLayoutProps({ width, grow, align = "left" }: CellLayout) {
@@ -45,7 +45,7 @@ export function TableHeader({ children }: TableHeaderProps) {
 }
 
 interface ColumnProps extends CellLayout {
-  sort?: SortDirection | undefined;
+  sort?: SortDirection;
   children: string;
 }
 
@@ -82,7 +82,7 @@ export function Row({ children }: RowProps) {
 
 interface CellProps extends CellLayout {
   muted?: boolean;
-  color?: ColorInput | undefined;
+  color?: ColorInput;
   children?: React.ReactNode;
 }
 

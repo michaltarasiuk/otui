@@ -8,7 +8,7 @@ interface Focus {
   keysEnabled: boolean;
   requestFocus: () => void;
   depth: number;
-  stepOut?: ((step: Step) => void) | undefined;
+  stepOut?: (step: Step) => void;
 }
 
 const FocusContext = createContext<Focus>({

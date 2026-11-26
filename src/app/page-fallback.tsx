@@ -14,7 +14,7 @@ export function PageLoading() {
 
 interface PageErrorProps {
   text: string;
-  onBack?: (() => void) | undefined;
+  onBack?: () => void;
 }
 
 export function PageError({ text, onBack }: PageErrorProps) {

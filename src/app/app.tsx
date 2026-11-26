@@ -31,7 +31,7 @@ const REGIONS = ["tabs", "content"] as const;
 interface AppProps {
   httpUrl: string;
   grpcUrl: string;
-  mcpUrl?: string | undefined;
+  mcpUrl?: string;
   onClear: () => Promise<void>;
 }
 

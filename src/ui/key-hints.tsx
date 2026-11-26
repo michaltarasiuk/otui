@@ -29,10 +29,10 @@ export function KeyHints({ children }: KeyHintsProps) {
 
 interface KeyProps {
   name: string;
-  priority?: number | undefined;
-  description?: string | undefined;
+  priority?: number;
+  description?: string;
   onPress: () => void | Promise<void>;
-  children?: string | undefined;
+  children?: string;
 }
 
 export function Key({ name, priority = 0, description, onPress, children }: KeyProps) {
@@ -66,11 +66,11 @@ export function Key({ name, priority = 0, description, onPress, children }: KeyP
 interface StepKeysProps {
   forward: string;
   backward: string;
-  priority?: number | undefined;
-  forwardDescription?: string | undefined;
+  priority?: number;
+  forwardDescription?: string;
   backwardDescription: string;
   onStep: (step: Step) => void;
-  children?: string | undefined;
+  children?: string;
 }
 
 export function StepKeys({
