@@ -13,7 +13,7 @@ interface TabOption extends TabSelectOption {
   value: Tab;
 }
 
-const TABS = [
+export const TABS = [
   { name: "Services", description: "", value: "services" },
   { name: "Traces", description: "", value: "traces" },
   { name: "Metrics", description: "", value: "metrics" },
