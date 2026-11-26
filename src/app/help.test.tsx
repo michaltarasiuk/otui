@@ -1,18 +1,15 @@
 import { expect, test } from "bun:test";
 
 import { renderApp } from "#testing/app.tsx";
-import { startTestReceiver } from "#testing/receiver.ts";
-import { keyHints, onList } from "#testing/screen.ts";
 import { collapseWhitespace } from "#utils/text.ts";
 
 test("lists every key of the focused page in a help overlay", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
   await app.openTab("traces");
-  app.mockInput.pressTab();
-  await app.waitForFrame(onList);
+  app.press("tab");
+  await app.waitFor((frame) => frame.onList);
 
-  app.mockInput.pressKey("?");
+  app.press("?");
 
   const frame = await app.waitForText("Keys");
   for (const line of [
@@ -22,40 +19,36 @@ test("lists every key of the focused page in a help overlay", async () => {
     "shift+tab previous region",
     "ctrl+l clear telemetry",
   ]) {
-    expect(collapseWhitespace(frame)).toContain(line);
+    expect(collapseWhitespace(frame.text)).toContain(line);
   }
 
-  app.mockInput.pressEscape();
-  await app.waitForFrame(
-    (frame) => !frame.includes("Keys") && keyHints(frame).includes("/ search"),
-  );
+  app.press("escape");
+  await app.waitFor((frame) => !frame.text.includes("Keys") && frame.hints.includes("/ search"));
 });
 
 test("types ? into the search instead of opening help", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
   await app.openTab("traces");
-  app.mockInput.pressTab();
-  await app.waitForFrame(onList);
+  app.press("tab");
+  await app.waitFor((frame) => frame.onList);
   await app.search("?");
 
   const frame = await app.waitForText("/?");
-  expect(frame).not.toContain("Keys");
+  expect(frame.text).not.toContain("Keys");
 });
 
 test("offers only the search's keys while typing a search", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
   await app.openTab("traces");
-  app.mockInput.pressTab();
-  await app.waitForFrame(onList);
+  app.press("tab");
+  await app.waitFor((frame) => frame.onList);
   await app.search("operation");
 
-  let frame = await app.waitForFrame((frame) => keyHints(frame).startsWith("/operation"));
-  expect(keyHints(frame)).toEndWith("return apply escape clear");
+  let frame = await app.waitFor((frame) => frame.hints.startsWith("/operation"));
+  expect(frame.hints).toEndWith("return apply escape clear");
 
-  app.mockInput.pressTab();
-  await app.mockInput.typeText("s");
-  frame = await app.waitForFrame((frame) => keyHints(frame).startsWith("/operations"));
-  expect(keyHints(frame)).toEndWith("return apply escape clear");
+  app.press("tab");
+  await app.type("s");
+  frame = await app.waitFor((frame) => frame.hints.startsWith("/operations"));
+  expect(frame.hints).toEndWith("return apply escape clear");
 });

@@ -2,17 +2,11 @@ import { expect, test } from "bun:test";
 
 import { renderPage } from "#testing/app.tsx";
 import { at } from "#testing/clock.ts";
-import { failOnce } from "#testing/connection.ts";
-import { silenceConsoleError } from "#testing/console.ts";
 import { fakeSpanId, fakeTraceId, tracesRequest } from "#testing/otlp.ts";
-import { startTestReceiver } from "#testing/receiver.ts";
-import { detailsLines, keyHints, spanRows, tableRows } from "#testing/screen.ts";
 import {
   nestedRootSpanId,
-  NESTED_ROW,
   nestedTraceId,
   ERROR_MESSAGE,
-  FAILED_ROW,
   nestedChildSpanId,
   openTrace,
   failedRootSpanId,
@@ -20,12 +14,11 @@ import {
 import spanContent from "#traces/sql/span-content.sql" with { type: "text" };
 
 test("shows the selected span's attributes, resource, and scope", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, NESTED_ROW);
+  const app = await openTrace("operation-a");
 
   const frame = await app.waitForText("Scope");
 
-  expect(detailsLines(frame)).toEqual([
+  expect(frame.details).toEqual([
     `operation-a ${nestedRootSpanId}`,
     "● service-a server 12:00:00.000 +0µs 120.0ms",
     "Attributes",
@@ -39,14 +32,13 @@ test("shows the selected span's attributes, resource, and scope", async () => {
 });
 
 test("shows the selected span's events with their offsets", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, NESTED_ROW);
+  const app = await openTrace("operation-a");
   await app.waitForText("Scope");
 
-  app.mockInput.pressArrow("down");
+  app.press("down");
   const frame = await app.waitForText("event-b");
 
-  expect(detailsLines(frame)).toEqual([
+  expect(frame.details).toEqual([
     `operation-b ${nestedChildSpanId}`,
     "● service-b server 12:00:00.010 +10.0ms 80.0ms",
     "Events",
@@ -60,12 +52,11 @@ test("shows the selected span's events with their offsets", async () => {
 });
 
 test("shows a span's links and status message", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, FAILED_ROW);
+  const app = await openTrace("operation-d");
 
   const frame = await app.waitForText("Links");
 
-  expect(detailsLines(frame)).toEqual([
+  expect(frame.details).toEqual([
     `operation-d ${failedRootSpanId}`,
     "● service-c server 12:00:01.000 +0µs 450.0ms",
     ERROR_MESSAGE,
@@ -78,101 +69,95 @@ test("shows a span's links and status message", async () => {
 });
 
 test("opens a linked trace from the links region and comes back", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openTrace(receiver, FAILED_ROW);
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Links"));
+  const app = await openTrace("operation-d");
+  await app.waitFor((frame) => frame.details.includes("Links"));
 
-  app.mockInput.pressTab();
-  await app.waitForFrame((frame) => keyHints(frame).includes("return open link"));
-  app.mockInput.pressEnter();
+  app.press("tab");
+  await app.waitFor((frame) => frame.hints.includes("return open link"));
+  app.press("return");
 
   expect(await app.waitForSelection("operation-a")).toContain("● service-a operation-a");
-  app.mockInput.pressEscape();
+  app.press("escape");
   await app.waitForSelection("operation-d");
 });
 
 test("selects a span linked within the same trace", async () => {
-  await using receiver = await startTestReceiver();
   const traceId = fakeTraceId("c");
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        { traceId, spanId: fakeSpanId("ca"), name: "operation-a", start: at(0), end: at(100) },
-        {
-          traceId,
-          spanId: fakeSpanId("cb"),
-          parentSpanId: fakeSpanId("ca"),
-          name: "operation-b",
-          start: at(10),
-          end: at(40),
-        },
-        {
-          traceId,
-          spanId: fakeSpanId("cc"),
-          parentSpanId: fakeSpanId("ca"),
-          name: "operation-c",
-          start: at(50),
-          end: at(90),
-          links: [
-            { traceId, spanId: fakeSpanId("cb") },
-            { traceId: fakeTraceId("d"), spanId: fakeSpanId("da") },
-          ],
-        },
-      ],
-    }),
-  );
-  await using app = await renderPage(receiver, "traces");
-  await app.waitForFrame((frame) => keyHints(frame).includes("return open"));
-  app.mockInput.pressEnter();
-  await app.waitForFrame((frame) => spanRows(frame).length === 3);
+  const app = await renderPage("traces", {
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [
+          { traceId, spanId: fakeSpanId("ca"), name: "operation-a", start: at(0), end: at(100) },
+          {
+            traceId,
+            spanId: fakeSpanId("cb"),
+            parentSpanId: fakeSpanId("ca"),
+            name: "operation-b",
+            start: at(10),
+            end: at(40),
+          },
+          {
+            traceId,
+            spanId: fakeSpanId("cc"),
+            parentSpanId: fakeSpanId("ca"),
+            name: "operation-c",
+            start: at(50),
+            end: at(90),
+            links: [
+              { traceId, spanId: fakeSpanId("cb") },
+              { traceId: fakeTraceId("d"), spanId: fakeSpanId("da") },
+            ],
+          },
+        ],
+      }),
+    ],
+  });
+  await app.waitFor((frame) => frame.hints.includes("return open"));
+  app.press("return");
+  await app.waitFor((frame) => frame.spanRows.length === 3);
   await app.selectRow("operation-c");
-  await app.waitForFrame((frame) =>
-    detailsLines(frame).includes(`${traceId} ${fakeSpanId("cb")} (this trace)`),
+  await app.waitFor((frame) =>
+    frame.details.includes(`${traceId} ${fakeSpanId("cb")} (this trace)`),
   );
 
-  app.mockInput.pressTab();
-  const frame = await app.waitForFrame((frame) => keyHints(frame).includes("return open link"));
-  expect(detailsLines(frame)).toContain(`${traceId} ${fakeSpanId("cb")} (this trace)`);
-  expect(detailsLines(frame)).toContain(`${fakeTraceId("d")} ${fakeSpanId("da")} (not stored)`);
-  app.mockInput.pressArrow("down");
-  await app.waitForFrame((frame) => !keyHints(frame).includes("open link"));
-  app.mockInput.pressArrow("up");
-  await app.waitForFrame((frame) => keyHints(frame).includes("return open link"));
-  app.mockInput.pressEnter();
+  app.press("tab");
+  const frame = await app.waitFor((frame) => frame.hints.includes("return open link"));
+  expect(frame.details).toContain(`${traceId} ${fakeSpanId("cb")} (this trace)`);
+  expect(frame.details).toContain(`${fakeTraceId("d")} ${fakeSpanId("da")} (not stored)`);
+  app.press("down");
+  await app.waitFor((frame) => !frame.hints.includes("open link"));
+  app.press("up");
+  await app.waitFor((frame) => frame.hints.includes("return open link"));
+  app.press("return");
 
   await app.waitForSelection("operation-b");
 });
 
 test("opens a link once its trace arrives", async () => {
-  await using receiver = await startTestReceiver();
   const linkedTraceId = fakeTraceId("f");
   const linkedSpanId = fakeSpanId("fa");
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        {
-          traceId: fakeTraceId("e"),
-          spanId: fakeSpanId("ea"),
-          name: "operation-a",
-          start: at(0),
-          end: at(100),
-          links: [{ traceId: linkedTraceId, spanId: linkedSpanId }],
-        },
-      ],
-    }),
-  );
-  await using app = await renderPage(receiver, "traces");
-  await app.waitForFrame((frame) => keyHints(frame).includes("return open"));
-  app.mockInput.pressEnter();
+  const app = await renderPage("traces", {
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [
+          {
+            name: "operation-a",
+            start: at(0),
+            end: at(100),
+            links: [{ traceId: linkedTraceId, spanId: linkedSpanId }],
+          },
+        ],
+      }),
+    ],
+  });
+  await app.waitFor((frame) => frame.hints.includes("return open"));
+  app.press("return");
   await app.waitForText(`${linkedTraceId} ${linkedSpanId} (not stored)`);
-  app.mockInput.pressTab();
+  app.press("tab");
 
-  await receiver.sendHttp(
-    "/v1/traces",
+  await app.receiver.send(
     tracesRequest({
       service: "service-b",
       spans: [
@@ -187,54 +172,49 @@ test("opens a link once its trace arrives", async () => {
     }),
   );
 
-  const frame = await app.waitForFrame((frame) => keyHints(frame).includes("return open link"));
-  expect(detailsLines(frame)).toContain(`${linkedTraceId} ${linkedSpanId}`);
+  const frame = await app.waitFor((frame) => frame.hints.includes("return open link"));
+  expect(frame.details).toContain(`${linkedTraceId} ${linkedSpanId}`);
 });
 
 test("loads a span's details again after they failed to load", async () => {
-  silenceConsoleError();
-  await using receiver = await startTestReceiver();
-  const connection = await receiver.connect();
-  using _ = failOnce(connection, spanContent);
-  await using app = await openTrace(receiver, NESTED_ROW, { connection });
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Failed to load span details"));
+  const app = await openTrace("operation-a", { failOnce: spanContent });
+  await app.waitFor((frame) => frame.details.includes("Failed to load span details"));
 
-  app.mockInput.pressArrow("down");
-  await app.waitForFrame((frame) => !detailsLines(frame).includes("Failed to load span details"));
-  app.mockInput.pressArrow("up");
+  app.press("down");
+  await app.waitFor((frame) => !frame.details.includes("Failed to load span details"));
+  app.press("up");
 
-  await app.waitForFrame((frame) => detailsLines(frame).includes("attribute.a value-a"));
+  await app.waitFor((frame) => frame.details.includes("attribute.a value-a"));
 });
 
 test("scrolls the span panel down and back up", async () => {
-  await using receiver = await startTestReceiver();
   const attributes = Object.fromEntries(
     Array.from({ length: 30 }, (_, index) => [`attribute.${index + 1}`, "value-a"]),
   );
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        {
-          traceId: nestedTraceId,
-          spanId: nestedRootSpanId,
-          name: "operation-a",
-          start: at(0),
-          end: at(10),
-          attributes,
-        },
-      ],
-    }),
-  );
-  await using app = await renderPage(receiver, "traces");
-  await app.waitForFrame((frame) => tableRows(frame).length === 1);
-  app.mockInput.pressEnter();
-  await app.waitForFrame((frame) => detailsLines(frame).includes("attribute.1 value-a"));
+  const app = await renderPage("traces", {
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [
+          {
+            traceId: nestedTraceId,
+            spanId: nestedRootSpanId,
+            name: "operation-a",
+            start: at(0),
+            end: at(10),
+            attributes,
+          },
+        ],
+      }),
+    ],
+  });
+  await app.waitFor((frame) => frame.tableRows.length === 1);
+  app.press("return");
+  await app.waitFor((frame) => frame.details.includes("attribute.1 value-a"));
 
-  app.mockInput.pressKey("d", { ctrl: true });
-  await app.waitForFrame((frame) => !detailsLines(frame).includes("attribute.1 value-a"));
+  app.press("ctrl+d");
+  await app.waitFor((frame) => !frame.details.includes("attribute.1 value-a"));
 
-  app.mockInput.pressKey("u", { ctrl: true });
-  await app.waitForFrame((frame) => detailsLines(frame).includes("attribute.1 value-a"));
+  app.press("ctrl+u");
+  await app.waitFor((frame) => frame.details.includes("attribute.1 value-a"));
 });

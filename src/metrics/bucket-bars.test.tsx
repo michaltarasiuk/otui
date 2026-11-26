@@ -21,7 +21,7 @@ async function renderBars(distribution: Distribution, unit: string) {
   const frame = await screen.waitForText("■".repeat(BAR_COLUMNS));
   return {
     ...screen,
-    rows: frame
+    rows: frame.text
       .split("\n")
       .map((line) => line.trimEnd())
       .filter((line) => line !== ""),
@@ -29,7 +29,7 @@ async function renderBars(distribution: Distribution, unit: string) {
 }
 
 test("scales each bar to the fullest bucket and drops empty buckets at the edges", async () => {
-  await using bars = await renderBars(
+  const bars = await renderBars(
     withBuckets(explicitBuckets([10, 50, 100, 500], [0, 1, 4, 2, 0])),
     "ms",
   );
@@ -42,7 +42,7 @@ test("scales each bar to the fullest bucket and drops empty buckets at the edges
 });
 
 test("keeps empty buckets between others and labels the overflow bucket by its lower bound", async () => {
-  await using bars = await renderBars(withBuckets(explicitBuckets([10, 50], [3, 0, 6])), "ms");
+  const bars = await renderBars(withBuckets(explicitBuckets([10, 50], [3, 0, 6])), "ms");
 
   expect(bars.rows).toEqual([
     "≤ 10.0ms     ■■■■■■■■■■                    3",
@@ -52,7 +52,7 @@ test("keeps empty buckets between others and labels the overflow bucket by its l
 });
 
 test("gives a nearly empty bucket at least one mark", async () => {
-  await using bars = await renderBars(withBuckets(explicitBuckets([10], [1, 1000])), "ms");
+  const bars = await renderBars(withBuckets(explicitBuckets([10], [1, 1000])), "ms");
 
   expect(bars.rows).toEqual([
     "≤ 10.0ms     ■                             1",
@@ -62,7 +62,7 @@ test("gives a nearly empty bucket at least one mark", async () => {
 
 test("merges exponential buckets until no more than sixteen remain", async () => {
   const positive = Array.from({ length: 40 }, (_, index) => ({ index, count: 1 }));
-  await using bars = await renderBars(withBuckets(exponentialBuckets(3, 0, 0, positive, [])), "");
+  const bars = await renderBars(withBuckets(exponentialBuckets(3, 0, 0, positive, [])), "");
 
   expect(bars.rows.map((row) => collapseWhitespace(row.replace(/■+/, "")))).toEqual([
     "≤ 1.41 4",

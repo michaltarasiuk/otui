@@ -2,29 +2,9 @@ import { beforeEach, expect, test } from "bun:test";
 
 import { renderPage } from "#testing/app.tsx";
 import { atSecond, fakeClock } from "#testing/clock.ts";
-import {
-  EXP_HISTOGRAM_ROW,
-  DETAILS_SIZE,
-  HISTOGRAM_ROW,
-  COUNTER_ROW,
-  GAUGE_ROW,
-  DELTA_COUNTER_ROW,
-  openMetric,
-  renderMetricList,
-  UPDOWNCOUNTER_ROW,
-} from "#testing/metrics.ts";
+import { CHART_DOTS } from "#testing/frame.ts";
+import { DETAILS_SIZE, openMetric, renderMetricList } from "#testing/metrics.ts";
 import { metricsRequest, TEMPORALITY } from "#testing/otlp.ts";
-import { startTestReceiver } from "#testing/receiver.ts";
-import {
-  CHART_DOTS,
-  detailsLines,
-  keyHints,
-  lineOf,
-  listLines,
-  onDetails,
-  tableRows,
-  textLines,
-} from "#testing/screen.ts";
 import { failedChildSpanId, failedTraceId, otlpTraces } from "#testing/traces.ts";
 
 beforeEach(() => {
@@ -32,25 +12,23 @@ beforeEach(() => {
 });
 
 test("draws the chart on the frame the metric first shows", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderMetricList(receiver, { size: DETAILS_SIZE });
-  await app.selectRow(COUNTER_ROW);
+  const app = await renderMetricList({ size: DETAILS_SIZE });
+  await app.selectRow("metric.b");
 
-  app.mockInput.pressEnter();
-  const frame = await app.waitForFrame(onDetails);
+  app.press("return");
+  const frame = await app.waitFor((frame) => frame.onDetails);
 
-  expect(frame).toMatch(CHART_DOTS);
+  expect(frame.text).toMatch(CHART_DOTS);
 });
 
 test("opens a counter's series with their rates and totals", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, COUNTER_ROW);
+  const app = await openMetric("metric.b");
 
-  const frame = await app.waitForFrame(
-    (frame) => CHART_DOTS.test(frame) && textLines(frame).includes("value-b 2/s 50"),
+  const frame = await app.waitFor(
+    (frame) => frame.hasChart && frame.lines.includes("value-b 2/s 50"),
   );
 
-  expect(listLines(frame)).toEqual([
+  expect(frame.list).toEqual([
     "metric.b counter",
     "● service-b unit {request} cumulative 2 series",
     "description-a",
@@ -59,7 +37,7 @@ test("opens a counter's series with their rates and totals", async () => {
     "value-b 2/s 50",
   ]);
 
-  const panel = detailsLines(frame);
+  const panel = frame.details;
   expect(panel.slice(0, 3)).toEqual(["value-a 12:00:30.000", "rate 10/s total 250", "Rate"]);
   expect(panel[3]).toStartWith("10/s ");
   expect(panel.slice(-8)).toEqual([
@@ -75,25 +53,21 @@ test("opens a counter's series with their rates and totals", async () => {
 });
 
 test("shows the series picked in the table", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, COUNTER_ROW);
-  await app.waitForFrame((frame) => textLines(frame).includes("value-b 2/s 50"));
+  const app = await openMetric("metric.b");
+  await app.waitFor((frame) => frame.lines.includes("value-b 2/s 50"));
 
-  app.mockInput.pressArrow("down");
-  const frame = await app.waitForFrame(
-    (frame) => detailsLines(frame)[0] === "value-b 12:00:30.000",
-  );
+  app.press("down");
+  const frame = await app.waitFor((frame) => frame.details[0] === "value-b 12:00:30.000");
 
-  expect(detailsLines(frame)[1]).toBe("rate 2/s total 50");
+  expect(frame.details[1]).toBe("rate 2/s total 50");
 });
 
 test("adds up a delta counter's points", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, DELTA_COUNTER_ROW);
+  const app = await openMetric("metric.a");
 
-  const frame = await app.waitForFrame((frame) => textLines(frame).includes("none 0.5/s 12"));
+  const frame = await app.waitFor((frame) => frame.lines.includes("none 0.5/s 12"));
 
-  expect(listLines(frame)).toEqual([
+  expect(frame.list).toEqual([
     "metric.a counter",
     "● service-a delta 1 series",
     "Attributes Rate Total",
@@ -102,47 +76,43 @@ test("adds up a delta counter's points", async () => {
 });
 
 test("shows the last, lowest, and highest value of gauges and updowncounters", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, GAUGE_ROW);
+  const app = await openMetric("metric.e");
 
-  let frame = await app.waitForFrame((frame) =>
-    textLines(frame).includes("none 1.5 MiB 1.0 MiB 2.0 MiB"),
-  );
-  expect(listLines(frame)).toEqual([
+  let frame = await app.waitFor((frame) => frame.lines.includes("none 1.5 MiB 1.0 MiB 2.0 MiB"));
+  expect(frame.list).toEqual([
     "metric.e gauge",
     "● service-c unit By 1 series",
     "Attributes Last Min Max",
     "none 1.5 MiB 1.0 MiB 2.0 MiB",
   ]);
 
-  app.mockInput.pressEscape();
+  app.press("escape");
   await app.waitForText("6 metrics");
-  app.mockInput.pressArrow("up");
-  await app.waitForSelection(UPDOWNCOUNTER_ROW);
-  app.mockInput.pressEnter();
-  frame = await app.waitForFrame((frame) => textLines(frame).includes("none 8 3 8"));
-  expect(detailsLines(frame)[1]).toBe("last 8 min 3 max 8");
+  app.press("up");
+  await app.waitForSelection("metric.d");
+  app.press("return");
+  frame = await app.waitFor((frame) => frame.lines.includes("none 8 3 8"));
+  expect(frame.details[1]).toBe("last 8 min 3 max 8");
 });
 
 test("shows a histogram's percentiles, buckets, and exemplars", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, HISTOGRAM_ROW);
+  const app = await openMetric("metric.c.b");
 
-  const frame = await app.waitForFrame(
+  const frame = await app.waitFor(
     (frame) =>
-      frame.includes("Exemplars") &&
-      CHART_DOTS.test(frame) &&
-      textLines(frame).includes("none 10 42.0ms 125.0ms 145.0ms 150.0ms"),
+      frame.text.includes("Exemplars") &&
+      frame.hasChart &&
+      frame.lines.includes("none 10 42.0ms 125.0ms 145.0ms 150.0ms"),
   );
 
-  expect(listLines(frame)).toEqual([
+  expect(frame.list).toEqual([
     "metric.c.b histogram",
     "● service-b unit s delta 1 series",
     "Attributes Count p50 p95 p99 Max",
     "none 10 42.0ms 125.0ms 145.0ms 150.0ms",
   ]);
 
-  const panel = detailsLines(frame);
+  const panel = frame.details;
   expect(panel.slice(0, 4)).toEqual([
     "no attributes 12:00:20.000",
     "count 10 p50 42.0ms p95 125.0ms p99 145.0ms max 150.0ms",
@@ -162,189 +132,173 @@ test("shows a histogram's percentiles, buckets, and exemplars", async () => {
 });
 
 test("shows an exponential histogram's buckets", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, EXP_HISTOGRAM_ROW);
+  const app = await openMetric("metric.c.a");
 
   const frame = await app.waitForText("Buckets");
 
-  expect(detailsLines(frame)[1]).toBe("count 6 p50 1.3 KiB p95 1.9 KiB p99 2.0 KiB max");
+  expect(frame.details[1]).toBe("count 6 p50 1.3 KiB p95 1.9 KiB p99 2.0 KiB max");
   expect(
-    detailsLines(frame)
-      .filter((line) => line.includes("■"))
-      .map((line) => line.replace(/ ■+/, "")),
+    frame.details.filter((line) => line.includes("■")).map((line) => line.replace(/ ■+/, "")),
   ).toEqual(["≤ 1.0 KiB 2", "≤ 2.0 KiB 4"]);
 });
 
 test("waits for a second export before plotting a counter's rate", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/metrics",
-    metricsRequest({
-      service: "service-a",
-      metrics: [
-        {
-          name: "metric.a",
-          monotonic: true,
-          temporality: TEMPORALITY.cumulative,
-          sum: [{ start: atSecond(0), time: atSecond(10), value: 5 }],
-        },
-      ],
-    }),
-  );
-  await using app = await renderPage(receiver, "metrics", { size: DETAILS_SIZE });
-  await app.waitForFrame((frame) => tableRows(frame).length === 1);
+  const app = await renderPage("metrics", {
+    size: DETAILS_SIZE,
+    send: [
+      metricsRequest({
+        service: "service-a",
+        metrics: [
+          {
+            name: "metric.a",
+            monotonic: true,
+            temporality: TEMPORALITY.cumulative,
+            sum: [{ start: atSecond(0), time: atSecond(10), value: 5 }],
+          },
+        ],
+      }),
+    ],
+  });
+  await app.waitFor((frame) => frame.tableRows.length === 1);
 
-  app.mockInput.pressEnter();
+  app.press("return");
 
   const frame = await app.waitForText("Not enough data points");
-  expect(detailsLines(frame).slice(0, 2)).toEqual(["no attributes 12:00:10.000", "rate total 5"]);
+  expect(frame.details.slice(0, 2)).toEqual(["no attributes 12:00:10.000", "rate total 5"]);
 });
 
 test("goes back to the list with the opened metric still selected", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, DELTA_COUNTER_ROW);
+  const app = await openMetric("metric.a");
 
-  app.mockInput.pressEscape();
+  app.press("escape");
   await app.waitForText("6 metrics");
 
-  expect(await app.waitForSelection("metric.a")).toBe(DELTA_COUNTER_ROW);
+  await app.waitForSelection("metric.a");
 });
 
 test("adds up a delta updowncounter's changes", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/metrics",
-    metricsRequest({
-      service: "service-a",
-      metrics: [
-        {
-          name: "metric.a",
-          unit: "{request}",
-          monotonic: false,
-          temporality: TEMPORALITY.delta,
-          sum: [
-            { start: atSecond(0), time: atSecond(10), value: 2 },
-            { start: atSecond(10), time: atSecond(20), value: -1 },
-            { start: atSecond(20), time: atSecond(30), value: 3 },
-          ],
-        },
-      ],
-    }),
-  );
-  await using app = await renderPage(receiver, "metrics", { size: DETAILS_SIZE });
-  await app.waitForFrame((frame) => tableRows(frame).length === 1);
+  const app = await renderPage("metrics", {
+    size: DETAILS_SIZE,
+    send: [
+      metricsRequest({
+        service: "service-a",
+        metrics: [
+          {
+            name: "metric.a",
+            unit: "{request}",
+            monotonic: false,
+            temporality: TEMPORALITY.delta,
+            sum: [
+              { start: atSecond(0), time: atSecond(10), value: 2 },
+              { start: atSecond(10), time: atSecond(20), value: -1 },
+              { start: atSecond(20), time: atSecond(30), value: 3 },
+            ],
+          },
+        ],
+      }),
+    ],
+  });
+  await app.waitFor((frame) => frame.tableRows.length === 1);
 
-  app.mockInput.pressEnter();
+  app.press("return");
 
-  const frame = await app.waitForFrame(
-    (frame) => CHART_DOTS.test(frame) && textLines(frame).includes("none 4 1 4"),
-  );
-  const panel = detailsLines(frame);
+  const frame = await app.waitFor((frame) => frame.hasChart && frame.lines.includes("none 4 1 4"));
+  const panel = frame.details;
   expect(panel.slice(0, 3)).toEqual(["no attributes 12:00:30.000", "last 4 min 1 max 4", "Value"]);
   expect(panel[3]).toStartWith("4 ");
   expect(panel).toContain("12:00:00.000 now");
 });
 
 test("opens a delta histogram that exports no buckets", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/metrics",
-    metricsRequest({
-      service: "service-a",
-      metrics: [
-        {
-          name: "metric.a",
-          unit: "s",
-          temporality: TEMPORALITY.delta,
-          histogram: [
-            { start: atSecond(0), time: atSecond(10), count: 3, bounds: [], counts: [] },
-            { start: atSecond(10), time: atSecond(20), count: 2, bounds: [], counts: [] },
-          ],
-        },
-      ],
-    }),
-  );
-  await using app = await renderPage(receiver, "metrics", { size: DETAILS_SIZE });
-  await app.waitForFrame((frame) => tableRows(frame).length === 1);
+  const app = await renderPage("metrics", {
+    size: DETAILS_SIZE,
+    send: [
+      metricsRequest({
+        service: "service-a",
+        metrics: [
+          {
+            name: "metric.a",
+            unit: "s",
+            temporality: TEMPORALITY.delta,
+            histogram: [
+              { start: atSecond(0), time: atSecond(10), count: 3, bounds: [], counts: [] },
+              { start: atSecond(10), time: atSecond(20), count: 2, bounds: [], counts: [] },
+            ],
+          },
+        ],
+      }),
+    ],
+  });
+  await app.waitFor((frame) => frame.tableRows.length === 1);
 
-  app.mockInput.pressEnter();
+  app.press("return");
 
-  const frame = await app.waitForFrame((frame) => textLines(frame).includes("none 5"));
-  expect(detailsLines(frame).slice(0, 2)).toEqual([
+  const frame = await app.waitFor((frame) => frame.lines.includes("none 5"));
+  expect(frame.details.slice(0, 2)).toEqual([
     "no attributes 12:00:20.000",
     "count 5 p50 p95 p99 max",
   ]);
 });
 
 test("scrolls the series panel down and back up", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderMetricList(receiver);
-  await app.selectRow(HISTOGRAM_ROW);
-  app.mockInput.pressEnter();
-  await app.waitForFrame(
-    (frame) => detailsLines(frame).includes("Exemplars") && CHART_DOTS.test(frame),
-  );
+  const app = await renderMetricList();
+  await app.selectRow("metric.c.b");
+  app.press("return");
+  await app.waitFor((frame) => frame.details.includes("Exemplars") && frame.hasChart);
 
-  app.mockInput.pressKey("d", { ctrl: true });
-  await app.waitForFrame((frame) => !detailsLines(frame).includes("Percentiles"));
+  app.press("ctrl+d");
+  await app.waitFor((frame) => !frame.details.includes("Percentiles"));
 
-  app.mockInput.pressKey("u", { ctrl: true });
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Percentiles"));
+  app.press("ctrl+u");
+  await app.waitFor((frame) => frame.details.includes("Percentiles"));
 });
 
 test("says when an open metric is no longer available", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, DELTA_COUNTER_ROW);
-  await app.waitForFrame((frame) => textLines(frame).includes("none 0.5/s 12"));
+  const app = await openMetric("metric.a");
+  await app.waitFor((frame) => frame.lines.includes("none 0.5/s 12"));
 
-  const connection = await receiver.connect();
-  await connection.run("DELETE FROM otlp_metrics_sum WHERE name = 'metric.a'");
+  await app.receiver.run("DELETE FROM otlp_metrics_sum WHERE name = 'metric.a'");
 
   await app.waitForText("This metric is no longer available");
 });
 
 test("opens an exemplar's trace from the exemplars region and comes back", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using app = await openMetric(receiver, HISTOGRAM_ROW);
-  const frame = await app.waitForFrame((frame) => detailsLines(frame).includes("Exemplars"));
-  expect(keyHints(frame)).not.toContain("open trace");
+  const app = await openMetric("metric.c.b", { send: [otlpTraces] });
+  const frame = await app.waitFor((frame) => frame.details.includes("Exemplars"));
+  expect(frame.hints).not.toContain("open trace");
 
-  app.mockInput.pressTab();
-  await app.waitForFrame((frame) => keyHints(frame).includes("return open trace"));
-  app.mockInput.pressEnter();
+  app.press("tab");
+  await app.waitFor((frame) => frame.hints.includes("return open trace"));
+  app.press("return");
 
   expect(await app.waitForSelection("operation-e")).toBe("● service-d operation-e 300.0ms");
-  app.mockInput.pressEscape();
+  app.press("escape");
   const back = await app.waitForText("metric.c.b");
-  expect(keyHints(back)).toContain("return open trace");
+  expect(back.hints).toContain("return open trace");
 
-  app.mockInput.pressTab();
-  await app.waitForFrame((frame) => keyHints(frame) === "tab next region ? help");
+  app.press("tab");
+  await app.waitFor((frame) => frame.hints === "tab next region ? help");
 });
 
 test("moves into the exemplars when one is clicked", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using app = await openMetric(receiver, HISTOGRAM_ROW);
-  const frame = await app.waitForFrame((frame) => detailsLines(frame).includes("Exemplars"));
-  const exemplarLine = lineOf(frame, "2b2b2b2b");
+  const app = await openMetric("metric.c.b", { send: [otlpTraces] });
+  const frame = await app.waitFor((frame) => frame.details.includes("Exemplars"));
+  const exemplarLine = frame.lineOf("2b2b2b2b");
 
   await app.mockMouse.click(20, exemplarLine);
 
-  await app.waitForFrame((frame) => keyHints(frame).includes("return open trace"));
+  await app.waitFor((frame) => frame.hints.includes("return open trace"));
 });
 
 test("narrows the chart to a shorter window and back", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await openMetric(receiver, DELTA_COUNTER_ROW);
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Rate"));
+  const app = await openMetric("metric.a");
+  await app.waitFor((frame) => frame.details.includes("Rate"));
 
-  app.mockInput.pressKey("w");
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Rate · last 15 min"));
-  app.mockInput.pressKey("w");
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Rate · last 5 min"));
-  app.mockInput.pressKey("w", { shift: true });
+  app.press("w");
+  await app.waitFor((frame) => frame.details.includes("Rate · last 15 min"));
+  app.press("w");
+  await app.waitFor((frame) => frame.details.includes("Rate · last 5 min"));
+  app.press("shift+w");
 
-  await app.waitForFrame((frame) => detailsLines(frame).includes("Rate · last 15 min"));
+  await app.waitFor((frame) => frame.details.includes("Rate · last 15 min"));
 });

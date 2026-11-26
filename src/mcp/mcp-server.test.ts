@@ -3,7 +3,6 @@ import { expect, test } from "bun:test";
 import { at, fakeClock } from "#testing/clock.ts";
 import { startTestMcp } from "#testing/mcp.ts";
 import { logsRequest, metricsRequest, SEVERITY_NUMBER, TEMPORALITY } from "#testing/otlp.ts";
-import { startTestReceiver } from "#testing/receiver.ts";
 import {
   nestedRootSpanId,
   nestedTraceId,
@@ -20,8 +19,7 @@ import { StartupError } from "#utils/startup-error.ts";
 import { startMcpServer } from "./mcp-server.ts";
 
 test("lists read-only tools for each view", async () => {
-  await using receiver = await startTestReceiver();
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp();
 
   const { tools } = await mcp.client.listTools();
 
@@ -42,9 +40,7 @@ test("lists read-only tools for each view", async () => {
 });
 
 test("serves clients of the 2025 protocol", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver, "legacy");
+  const mcp = await startTestMcp({ send: [otlpTraces], mode: "legacy" });
 
   const outline = await mcp.callText("get_trace", { trace_id: singleTraceId });
 
@@ -52,8 +48,7 @@ test("serves clients of the 2025 protocol", async () => {
 });
 
 test("rejects arguments a tool doesn't take", async () => {
-  await using receiver = await startTestReceiver();
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp();
 
   const result = await mcp.call("list_traces", { service_name: "service-a" });
 
@@ -64,9 +59,7 @@ test("rejects arguments a tool doesn't take", async () => {
 });
 
 test("lists traces with the same search as the app", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   expect(await mcp.callJson("list_traces")).toEqual([
     expect.objectContaining({ trace_id: singleTraceId }),
@@ -79,9 +72,7 @@ test("lists traces with the same search as the app", async () => {
 });
 
 test("says when more traces match than the limit", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   const { texts } = await mcp.call("list_traces", { limit: 2 });
 
@@ -93,8 +84,7 @@ test("says when more traces match than the limit", async () => {
 });
 
 test("reports a trace it doesn't store as a tool error", async () => {
-  await using receiver = await startTestReceiver();
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp();
 
   const result = await mcp.call("get_trace", { trace_id: singleTraceId });
 
@@ -107,9 +97,7 @@ test("reports a trace it doesn't store as a tool error", async () => {
 });
 
 test("outlines a trace's spans with the critical path and errors", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   const outline = await mcp.callText("get_trace", { trace_id: failedTraceId });
 
@@ -124,10 +112,7 @@ test("outlines a trace's spans with the critical path and errors", async () => {
 });
 
 test("compares two traces by self time", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await receiver.sendHttp("/v1/traces", slowNestedTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces, slowNestedTraces] });
 
   const comparison = await mcp.callJson("compare_traces", {
     before_trace_id: nestedTraceId,
@@ -152,9 +137,7 @@ test("compares two traces by self time", async () => {
 });
 
 test("refuses to compare traces with different root spans", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   const result = await mcp.call("compare_traces", {
     before_trace_id: nestedTraceId,
@@ -168,9 +151,7 @@ test("refuses to compare traces with different root spans", async () => {
 });
 
 test("reads a span's attributes and resource", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   const span = await mcp.callJson("get_span", {
     trace_id: nestedTraceId,
@@ -185,9 +166,7 @@ test("reads a span's attributes and resource", async () => {
 
 test("lists services and their operations", async () => {
   fakeClock(at(60_000));
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   const services = await mcp.callJson("list_services");
   const operations = await mcp.callJson("list_operations", { service: "service-c" });
@@ -198,9 +177,7 @@ test("lists services and their operations", async () => {
 
 test("maps calls between services and to external peers", async () => {
   fakeClock(at(60_000));
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({ send: [otlpTraces] });
 
   const calls = await mcp.callJson("get_service_map");
 
@@ -212,18 +189,17 @@ test("maps calls between services and to external peers", async () => {
 });
 
 test("lists logs at or above a severity", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({
-      service: "service-a",
-      logs: [
-        { time: new Date(), body: "message-a", severityNumber: SEVERITY_NUMBER.info },
-        { time: new Date(), body: "message-b", severityNumber: SEVERITY_NUMBER.error },
-      ],
-    }),
-  );
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({
+    send: [
+      logsRequest({
+        service: "service-a",
+        logs: [
+          { time: new Date(), body: "message-a", severityNumber: SEVERITY_NUMBER.info },
+          { time: new Date(), body: "message-b", severityNumber: SEVERITY_NUMBER.error },
+        ],
+      }),
+    ],
+  });
 
   const logs = await mcp.callJson("list_logs", { min_severity: "WARN" });
 
@@ -233,23 +209,22 @@ test("lists logs at or above a severity", async () => {
 });
 
 test("reads a metric's series", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/metrics",
-    metricsRequest({
-      service: "service-a",
-      metrics: [
-        {
-          name: "metric.a",
-          gauge: [
-            { time: new Date(Date.now() - 1000), value: 4 },
-            { time: new Date(), value: 6 },
-          ],
-        },
-      ],
-    }),
-  );
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({
+    send: [
+      metricsRequest({
+        service: "service-a",
+        metrics: [
+          {
+            name: "metric.a",
+            gauge: [
+              { time: new Date(Date.now() - 1000), value: 4 },
+              { time: new Date(), value: 6 },
+            ],
+          },
+        ],
+      }),
+    ],
+  });
 
   const metrics = await mcp.callJson("get_metric", { name: "metric.a" });
 
@@ -264,26 +239,25 @@ test("reads a metric's series", async () => {
 });
 
 test("reads a counter's rate and total like the app", async () => {
-  await using receiver = await startTestReceiver();
   const start = new Date(Date.now() - 30_000);
-  await receiver.sendHttp(
-    "/v1/metrics",
-    metricsRequest({
-      service: "service-a",
-      metrics: [
-        {
-          name: "metric.a",
-          sum: [
-            { start, time: new Date(start.getTime() + 10_000), value: 10 },
-            { start, time: new Date(start.getTime() + 20_000), value: 30 },
-          ],
-          monotonic: true,
-          temporality: TEMPORALITY.cumulative,
-        },
-      ],
-    }),
-  );
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({
+    send: [
+      metricsRequest({
+        service: "service-a",
+        metrics: [
+          {
+            name: "metric.a",
+            sum: [
+              { start, time: new Date(start.getTime() + 10_000), value: 10 },
+              { start, time: new Date(start.getTime() + 20_000), value: 30 },
+            ],
+            monotonic: true,
+            temporality: TEMPORALITY.cumulative,
+          },
+        ],
+      }),
+    ],
+  });
 
   const metrics = await mcp.callJson("get_metric", { name: "metric.a" });
 
@@ -296,17 +270,14 @@ test("reads a counter's rate and total like the app", async () => {
 });
 
 test("finds a metric by its exact name among many that contain it", async () => {
-  await using receiver = await startTestReceiver();
   const containing = Array.from({ length: 600 }, (_, index) => ({
     name: `metric.a.${index}`,
     gauge: [{ time: new Date(), value: index }],
   }));
   const exact = { name: "metric.a", gauge: [{ time: new Date(), value: 7 }] };
-  await receiver.sendHttp(
-    "/v1/metrics",
-    metricsRequest({ service: "service-a", metrics: [...containing, exact] }),
-  );
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp({
+    send: [metricsRequest({ service: "service-a", metrics: [...containing, exact] })],
+  });
 
   const metrics = await mcp.callJson("get_metric", { name: "metric.a" });
 
@@ -316,8 +287,7 @@ test("finds a metric by its exact name among many that contain it", async () => 
 });
 
 test("refuses requests from other hosts and origins", async () => {
-  await using receiver = await startTestReceiver();
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp();
   const ping = { jsonrpc: "2.0", id: 1, method: "ping" };
   const headers = {
     "content-type": "application/json",
@@ -340,11 +310,10 @@ test("refuses requests from other hosts and origins", async () => {
 });
 
 test("names the port when it can't serve on it", async () => {
-  await using receiver = await startTestReceiver();
-  await using mcp = await startTestMcp(receiver);
+  const mcp = await startTestMcp();
   const { port } = new URL(mcp.url);
 
-  const connection = await receiver.connect();
+  const connection = await mcp.receiver.connect();
 
   expect(() => startMcpServer({ connection, port: Number(port), version: "0.0.0" })).toThrow(
     StartupError,

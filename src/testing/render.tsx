@@ -1,4 +1,6 @@
-import type { CapturedFrame, CapturedSpan, CliRenderer } from "@opentui/core";
+import { onTestFinished } from "bun:test";
+
+import type { CliRenderer } from "@opentui/core";
 import { createTestRenderer } from "@opentui/core/testing";
 import {
   registerDeadBindingWarnings,
@@ -11,14 +13,15 @@ import { StrictMode } from "react";
 
 import { RENDERER_CONFIG } from "#app/tui.tsx";
 import { isDefined } from "#utils/is-defined.ts";
-import { collapseWhitespace } from "#utils/text.ts";
 
-import { selectedBackground } from "./screen.ts";
+import { Frame } from "./frame.ts";
+import { type Key, pressKey } from "./key.ts";
+import { StyledFrame } from "./styled-frame.ts";
 
 const WAIT_TIMEOUT_MS = 3000;
 const WAIT_POLL_INTERVAL_MS = 10;
 
-interface RenderOptions {
+interface Size {
   width: number;
   height: number;
 }
@@ -27,15 +30,17 @@ interface SelectionOptions {
   line?: number;
 }
 
-export async function render(node: React.ReactNode, { width, height }: RenderOptions) {
-  const setup = await createTestRenderer({
-    ...RENDERER_CONFIG,
-    width,
-    height,
-    kittyKeyboard: true,
-  });
-  const { keymap, diagnostics: keymapDiagnostics } = createDiagnosedKeymap(setup.renderer);
+export type TestScreen = Awaited<ReturnType<typeof mount>>["screen"];
 
+export async function render(node: React.ReactNode, size: Size) {
+  const { screen, unmount } = await mount(node, size);
+  onTestFinished(unmount);
+  return screen;
+}
+
+export async function mount(node: React.ReactNode, size: Size) {
+  const setup = await createTestRenderer({ ...RENDERER_CONFIG, ...size, kittyKeyboard: true });
+  const { keymap, diagnostics } = createDiagnosedKeymap(setup.renderer);
   const root = createRoot(setup.renderer);
   root.render(
     <StrictMode>
@@ -43,18 +48,12 @@ export async function render(node: React.ReactNode, { width, height }: RenderOpt
     </StrictMode>,
   );
 
-  async function captureSpans() {
-    await setup.renderer.idle();
-    return setup.captureSpans();
-  }
-
   async function waitUntil<T>(
     capture: () => T | undefined | Promise<T | undefined>,
     matches: (captured: T) => boolean,
     expected: string,
   ) {
     const deadline = performance.now() + WAIT_TIMEOUT_MS;
-
     while (performance.now() < deadline) {
       await setup.renderOnce();
       const captured = await capture();
@@ -70,26 +69,43 @@ export async function render(node: React.ReactNode, { width, height }: RenderOpt
     );
   }
 
-  function waitForFrame(
-    predicate: (frame: string) => boolean,
-    expected = `a frame matching ${describePredicate(predicate)}`,
-  ) {
-    return waitUntil(() => setup.captureCharFrame(), predicate, expected);
+  function press(key: Key) {
+    pressKey(setup.mockInput, key);
   }
 
-  function waitForText(text: string) {
-    return waitForFrame((frame) => frame.includes(text), `text ${JSON.stringify(text)}`);
+  function type(text: string) {
+    return setup.mockInput.typeText(text);
   }
 
   async function captureFrame() {
     await setup.renderOnce();
     await runPendingEffects();
-    return setup.captureCharFrame();
+    return new Frame(setup.captureCharFrame());
+  }
+
+  async function captureStyles() {
+    await setup.renderer.idle();
+    return new StyledFrame(setup.captureSpans());
+  }
+
+  function waitFor(
+    predicate: (frame: Frame) => boolean,
+    expected = `a frame matching ${describePredicate(predicate)}`,
+  ) {
+    return waitUntil(() => new Frame(setup.captureCharFrame()), predicate, expected);
+  }
+
+  function waitForText(text: string) {
+    return waitFor((frame) => frame.text.includes(text), `text ${JSON.stringify(text)}`);
+  }
+
+  async function selection() {
+    return (await captureStyles()).selection;
   }
 
   async function waitForSelection(text: string, { line }: SelectionOptions = {}) {
     const selected = await waitUntil(
-      async () => firstSelectedLine(await captureSpans()),
+      selection,
       (selected) => selected.text.includes(text) && (!isDefined(line) || selected.line === line),
       isDefined(line)
         ? `a selected row containing "${text}" on line ${line}`
@@ -98,21 +114,15 @@ export async function render(node: React.ReactNode, { width, height }: RenderOpt
     return selected.text;
   }
 
-  // Moves the selection one row at a time toward the visible row containing `text`,
-  // waiting for each step to render, so keys never outrun the deferred selection.
   async function selectRow(text: string) {
-    let selected = await waitUntil(
-      async () => firstSelectedLine(await captureSpans()),
-      () => true,
-      "a selected row",
-    );
+    let selected = await waitUntil(selection, () => true, "a selected row");
     while (!selected.text.includes(text)) {
-      const frame = await captureSpans();
-      const direction = nearestLine(frame, text, selected.line) < selected.line ? "up" : "down";
+      const target = (await captureStyles()).nearestLineOf(text, selected.line);
+      const direction = target < selected.line ? "up" : "down";
       const previous = selected.text;
-      setup.mockInput.pressArrow(direction);
+      press(direction);
       selected = await waitUntil(
-        async () => firstSelectedLine(await captureSpans()),
+        selection,
         (next) => next.text !== previous,
         `the selection to move ${direction} from "${previous}" toward "${text}"`,
       );
@@ -120,30 +130,33 @@ export async function render(node: React.ReactNode, { width, height }: RenderOpt
     return selected.text;
   }
 
-  return {
-    mockInput: setup.mockInput,
+  async function unmount() {
+    try {
+      flushSync(() => root.unmount());
+    } finally {
+      await setup.dispose();
+    }
+    if (diagnostics.length > 0) {
+      throw new Error(`Keymap reported:\n${diagnostics.join("\n")}`);
+    }
+  }
+
+  const screen = {
+    press,
+    type,
     mockMouse: setup.mockMouse,
     resize: setup.resize,
     captureFrame,
-    captureSpans,
-    waitForFrame,
+    captureStyles,
+    waitFor,
     waitForText,
     waitForSelection,
     selectRow,
-    async [Symbol.asyncDispose]() {
-      try {
-        flushSync(() => root.unmount());
-      } finally {
-        await setup.dispose();
-      }
-      if (keymapDiagnostics.length > 0) {
-        throw new Error(`Keymap reported:\n${keymapDiagnostics.join("\n")}`);
-      }
-    },
   };
+  return { screen, unmount };
 }
 
-function describePredicate(predicate: (frame: string) => boolean) {
+function describePredicate(predicate: (frame: Frame) => boolean) {
   return predicate.name === "" ? predicate.toString() : predicate.name;
 }
 
@@ -161,29 +174,4 @@ function createDiagnosedKeymap(renderer: CliRenderer) {
   keymap.on("error", ({ message }) => diagnostics.push(message));
 
   return { keymap, diagnostics };
-}
-
-function lineText(spans: CapturedSpan[]) {
-  return collapseWhitespace(spans.map((span) => span.text).join(""));
-}
-
-function firstSelectedLine({ lines }: CapturedFrame) {
-  for (const [line, { spans }] of lines.entries()) {
-    if (spans.some((span) => span.text.trim() !== "" && span.bg.equals(selectedBackground))) {
-      return { line, text: lineText(spans) };
-    }
-  }
-  return undefined;
-}
-
-// The line containing `text` closest to `from`, or the last line when no line contains it,
-// so a row scrolled out of view below is reached by moving down.
-function nearestLine({ lines }: CapturedFrame, text: string, from: number) {
-  let nearest = lines.length;
-  for (const [line, { spans }] of lines.entries()) {
-    if (lineText(spans).includes(text) && Math.abs(line - from) < Math.abs(nearest - from)) {
-      nearest = line;
-    }
-  }
-  return nearest;
 }

@@ -23,6 +23,18 @@ export function fakeSpanId(seed: string) {
   return fakeId(seed, SPAN_ID_LENGTH);
 }
 
+function derivedId(span: object, length: number) {
+  const hash = BigInt(Bun.hash(JSON.stringify(span)))
+    .toString(16)
+    .padStart(16, "0");
+  return hash.repeat(length / hash.length);
+}
+
+export interface OtlpRequest {
+  path: string;
+  body: unknown;
+}
+
 type AttributeValue = string | number | boolean;
 type AttributeMap = Record<string, AttributeValue>;
 
@@ -50,8 +62,8 @@ interface SpanLinkFixture {
 }
 
 interface SpanFixture {
-  traceId: string;
-  spanId: string;
+  traceId?: string;
+  spanId?: string;
   parentSpanId?: string;
   name: string;
   kind?: number;
@@ -196,9 +208,13 @@ function spanLink({ attributes, ...link }: SpanLinkFixture) {
   return { ...link, attributes: keyValues(attributes) };
 }
 
-function span({ start, end, attributes, events, links, ...fields }: SpanFixture) {
+function span(service: string, fixture: SpanFixture) {
+  const { traceId, spanId, start, end, attributes, events, links, ...fields } = fixture;
+  const identity = { service, name: fixture.name, start, end };
   return {
     ...fields,
+    traceId: traceId ?? derivedId({ ...identity, id: "trace" }, TRACE_ID_LENGTH),
+    spanId: spanId ?? derivedId(identity, SPAN_ID_LENGTH),
     startTimeUnixNano: unixNano(start),
     endTimeUnixNano: unixNano(end),
     attributes: keyValues(attributes),
@@ -303,33 +319,34 @@ function metric(fixture: MetricFixture) {
   return { name, unit, description, ...metricData(fixture) };
 }
 
-export function tracesRequest(...resources: (ResourceFixture & { spans: SpanFixture[] })[]) {
-  return {
-    resourceSpans: resources.map((fixture) => ({
-      resource: resource(fixture),
-      scopeSpans: [{ scope: fixture.scope, spans: fixture.spans.map((item) => span(item)) }],
-    })),
-  };
+export function tracesRequest(
+  ...resources: (ResourceFixture & { spans: SpanFixture[] })[]
+): OtlpRequest {
+  const resourceSpans = resources.map((fixture) => ({
+    resource: resource(fixture),
+    scopeSpans: [
+      { scope: fixture.scope, spans: fixture.spans.map((item) => span(fixture.service, item)) },
+    ],
+  }));
+  return { path: "/v1/traces", body: { resourceSpans } };
 }
 
-export function logsRequest(...resources: (ResourceFixture & { logs: LogFixture[] })[]) {
-  return {
-    resourceLogs: resources.map((fixture) => ({
-      resource: resource(fixture),
-      scopeLogs: [
-        { scope: fixture.scope, logRecords: fixture.logs.map((item) => logRecord(item)) },
-      ],
-    })),
-  };
+export function logsRequest(
+  ...resources: (ResourceFixture & { logs: LogFixture[] })[]
+): OtlpRequest {
+  const resourceLogs = resources.map((fixture) => ({
+    resource: resource(fixture),
+    scopeLogs: [{ scope: fixture.scope, logRecords: fixture.logs.map((item) => logRecord(item)) }],
+  }));
+  return { path: "/v1/logs", body: { resourceLogs } };
 }
 
-export function metricsRequest(...resources: (ResourceFixture & { metrics: MetricFixture[] })[]) {
-  return {
-    resourceMetrics: resources.map((fixture) => ({
-      resource: resource(fixture),
-      scopeMetrics: [
-        { scope: fixture.scope, metrics: fixture.metrics.map((item) => metric(item)) },
-      ],
-    })),
-  };
+export function metricsRequest(
+  ...resources: (ResourceFixture & { metrics: MetricFixture[] })[]
+): OtlpRequest {
+  const resourceMetrics = resources.map((fixture) => ({
+    resource: resource(fixture),
+    scopeMetrics: [{ scope: fixture.scope, metrics: fixture.metrics.map((item) => metric(item)) }],
+  }));
+  return { path: "/v1/metrics", body: { resourceMetrics } };
 }

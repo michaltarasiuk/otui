@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 
 import { useState } from "react";
 
+import { Frame } from "#testing/frame.ts";
 import { render } from "#testing/render.tsx";
-import { textLines } from "#testing/screen.ts";
 
 import { FocusScope } from "./focus.tsx";
 import { Key } from "./key-hints.tsx";
@@ -11,9 +11,6 @@ import { Rows, useIsSelected } from "./rows.tsx";
 import { useSelection } from "./use-selection.ts";
 
 const SCREEN_SIZE = { width: 20, height: 5 };
-
-const PAGE_DOWN = "\x1b[6~";
-const PAGE_UP = "\x1b[5~";
 
 const SCROLL_INDICATOR = "█";
 
@@ -59,139 +56,139 @@ function GrowingRows({ from, to }: GrowingRowsProps) {
   );
 }
 
-function visibleRows(frame: string) {
-  return textLines(frame.replaceAll(SCROLL_INDICATOR, ""));
+function visibleRows(frame: Frame) {
+  return new Frame(frame.text.replaceAll(SCROLL_INDICATOR, "")).lines;
 }
 
-function indicatorLine(frame: string) {
-  return frame.split("\n").findIndex((line) => line.includes(SCROLL_INDICATOR));
+function indicatorLine(frame: Frame) {
+  return frame.text.split("\n").findIndex((line) => line.includes(SCROLL_INDICATOR));
 }
 
 function selected(row: number) {
-  return (frame: string) => visibleRows(frame).includes(`> row ${row}`);
+  return (frame: Frame) => visibleRows(frame).includes(`> row ${row}`);
 }
 
 test("renders only the rows that fit", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
 
-  const frame = await screen.waitForFrame(selected(1));
+  const frame = await screen.waitFor(selected(1));
 
   expect(visibleRows(frame)).toEqual(["> row 1", "row 2", "row 3", "row 4", "row 5"]);
 });
 
 test("keeps the selection in the middle as it moves down", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
   for (const row of [2, 3, 4]) {
-    screen.mockInput.pressArrow("down");
-    await screen.waitForFrame(selected(row));
+    screen.press("down");
+    await screen.waitFor(selected(row));
   }
 
-  const frame = await screen.waitForFrame(selected(4));
+  const frame = await screen.waitFor(selected(4));
   expect(visibleRows(frame)).toEqual(["row 2", "row 3", "> row 4", "row 5", "row 6"]);
 });
 
 test("moves with j and k", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
-  screen.mockInput.pressKey("j");
-  await screen.waitForFrame(selected(2));
-  screen.mockInput.pressKey("k");
+  screen.press("j");
+  await screen.waitFor(selected(2));
+  screen.press("k");
 
-  await screen.waitForFrame(selected(1));
+  await screen.waitFor(selected(1));
 });
 
 test("stops at the first and last rows", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
-  screen.mockInput.pressArrow("up");
+  screen.press("up");
   await screen.captureFrame();
-  screen.mockInput.pressArrow("down");
-  await screen.waitForFrame(selected(2));
+  screen.press("down");
+  await screen.waitFor(selected(2));
 
-  screen.mockInput.pressKey("END");
-  let frame = await screen.waitForFrame(selected(20));
+  screen.press("end");
+  let frame = await screen.waitFor(selected(20));
   expect(visibleRows(frame)).toEqual(["row 16", "row 17", "row 18", "row 19", "> row 20"]);
 
-  screen.mockInput.pressArrow("down");
+  screen.press("down");
   await screen.captureFrame();
-  screen.mockInput.pressArrow("up");
-  frame = await screen.waitForFrame(selected(19));
+  screen.press("up");
+  frame = await screen.waitFor(selected(19));
   expect(visibleRows(frame)).toContain("row 20");
 });
 
 test("pages by the number of visible rows", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
-  screen.mockInput.pressKey(PAGE_DOWN);
-  await screen.waitForFrame(selected(6));
-  screen.mockInput.pressKey(PAGE_DOWN);
-  await screen.waitForFrame(selected(11));
-  screen.mockInput.pressKey(PAGE_UP);
-  await screen.waitForFrame(selected(6));
-  screen.mockInput.pressKey("HOME");
+  screen.press("pagedown");
+  await screen.waitFor(selected(6));
+  screen.press("pagedown");
+  await screen.waitFor(selected(11));
+  screen.press("pageup");
+  await screen.waitFor(selected(6));
+  screen.press("home");
 
-  await screen.waitForFrame(selected(1));
+  await screen.waitFor(selected(1));
 });
 
 test("moves half a page with ctrl+d and ctrl+u when asked", async () => {
-  await using screen = await render(<NumberedRows count={20} halfPageKeys />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} halfPageKeys />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
-  screen.mockInput.pressKey("d", { ctrl: true });
-  await screen.waitForFrame(selected(3));
-  screen.mockInput.pressKey("d", { ctrl: true });
-  await screen.waitForFrame(selected(5));
-  screen.mockInput.pressKey("u", { ctrl: true });
+  screen.press("ctrl+d");
+  await screen.waitFor(selected(3));
+  screen.press("ctrl+d");
+  await screen.waitFor(selected(5));
+  screen.press("ctrl+u");
 
-  await screen.waitForFrame(selected(3));
+  await screen.waitFor(selected(3));
 });
 
 test("selects the row a click lands on", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
   await screen.mockMouse.click(2, 3);
 
-  await screen.waitForFrame(selected(4));
+  await screen.waitFor(selected(4));
 });
 
 test("moves the selection once for every scroll event, however fast they come", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
   await Promise.all([
     screen.mockMouse.scroll(2, 1, "down"),
     screen.mockMouse.scroll(2, 1, "down"),
     screen.mockMouse.scroll(2, 1, "down"),
   ]);
-  await screen.waitForFrame(selected(4));
+  await screen.waitFor(selected(4));
 
   await Promise.all([screen.mockMouse.scroll(2, 1, "up"), screen.mockMouse.scroll(2, 1, "up")]);
-  await screen.waitForFrame(selected(2));
+  await screen.waitFor(selected(2));
 });
 
 test("places the scroll indicator by how far the list has scrolled", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
   const frame = await screen.waitForText(SCROLL_INDICATOR);
   expect(indicatorLine(frame)).toBe(0);
 
-  screen.mockInput.pressKey("END");
+  screen.press("end");
 
-  expect(indicatorLine(await screen.waitForFrame(selected(20)))).toBe(SCREEN_SIZE.height - 1);
+  expect(indicatorLine(await screen.waitFor(selected(20)))).toBe(SCREEN_SIZE.height - 1);
 });
 
 test("draws the scroll indicator only beside rows", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
   const framesWithoutRows: string[] = [];
 
-  await screen.waitForFrame((frame) => {
-    if (frame.includes(SCROLL_INDICATOR) && visibleRows(frame).length === 0) {
-      framesWithoutRows.push(frame);
+  await screen.waitFor((frame) => {
+    if (frame.text.includes(SCROLL_INDICATOR) && visibleRows(frame).length === 0) {
+      framesWithoutRows.push(frame.text);
     }
     return selected(1)(frame);
   });
@@ -200,16 +197,16 @@ test("draws the scroll indicator only beside rows", async () => {
 });
 
 test("leaves out the scroll indicator when every row fits", async () => {
-  await using screen = await render(<NumberedRows count={3} />, SCREEN_SIZE);
+  const screen = await render(<NumberedRows count={3} />, SCREEN_SIZE);
 
-  const frame = await screen.waitForFrame(selected(1));
+  const frame = await screen.waitFor(selected(1));
 
   expect(visibleRows(frame)).toEqual(["> row 1", "row 2", "row 3"]);
-  expect(frame).not.toContain(SCROLL_INDICATOR);
+  expect(frame.text).not.toContain(SCROLL_INDICATOR);
 });
 
 test("ignores keys while its scope is not focused", async () => {
-  await using screen = await render(
+  const screen = await render(
     <box flexDirection="row" flexGrow={1}>
       <box flexGrow={1}>
         <NumberedRows count={3} />
@@ -222,34 +219,34 @@ test("ignores keys while its scope is not focused", async () => {
     </box>,
     { width: 40, height: 5 },
   );
-  await screen.waitForFrame((frame) => visibleRows(frame)[0] === "> row 1 > row 1");
+  await screen.waitFor((frame) => visibleRows(frame)[0] === "> row 1 > row 1");
 
-  screen.mockInput.pressArrow("down");
+  screen.press("down");
 
-  const frame = await screen.waitForFrame((frame) => visibleRows(frame)[1] === "> row 2 row 2");
+  const frame = await screen.waitFor((frame) => visibleRows(frame)[1] === "> row 2 row 2");
   expect(visibleRows(frame)).toEqual(["row 1 > row 1", "> row 2 row 2", "row 3 row 3"]);
 });
 
 test("shows more rows after the terminal grows", async () => {
-  await using screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
+  const screen = await render(<NumberedRows count={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
 
   screen.resize(SCREEN_SIZE.width, 8);
 
-  const frame = await screen.waitForFrame((frame) => visibleRows(frame).includes("row 8"));
+  const frame = await screen.waitFor((frame) => visibleRows(frame).includes("row 8"));
   expect(visibleRows(frame)).toHaveLength(8);
 });
 
 test("keeps the rows in place on the frame more rows arrive", async () => {
-  await using screen = await render(<GrowingRows from={3} to={20} />, SCREEN_SIZE);
-  await screen.waitForFrame(selected(1));
-  screen.mockInput.pressArrow("down");
-  await screen.waitForFrame(selected(2));
-  screen.mockInput.pressArrow("down");
-  await screen.waitForFrame(selected(3));
+  const screen = await render(<GrowingRows from={3} to={20} />, SCREEN_SIZE);
+  await screen.waitFor(selected(1));
+  screen.press("down");
+  await screen.waitFor(selected(2));
+  screen.press("down");
+  await screen.waitFor(selected(3));
 
-  screen.mockInput.pressKey("g");
+  screen.press("g");
 
-  const frame = await screen.waitForFrame((frame) => visibleRows(frame).includes("row 4"));
+  const frame = await screen.waitFor((frame) => visibleRows(frame).includes("row 4"));
   expect(visibleRows(frame)).toEqual(["row 1", "row 2", "> row 3", "row 4", "row 5"]);
 });

@@ -1,8 +1,6 @@
 import { type AppOptions, renderPage } from "./app.tsx";
 import { at } from "./clock.ts";
 import { logsRequest, SEVERITY_NUMBER, tracesRequest } from "./otlp.ts";
-import type { TestReceiver } from "./receiver.ts";
-import { tableRows } from "./screen.ts";
 import { failedChildSpanId, failedRootSpanId, failedTraceId } from "./traces.ts";
 
 export const otlpLogs = logsRequest(
@@ -101,27 +99,8 @@ export const failedTrace = tracesRequest(
   },
 );
 
-export const NOTICE_ROW = "12:00:06.000 notice ● service-j message-f";
-export const EVENT_ROW = "12:00:05.000 INFO ● service-i event-a message-e second line";
-export const FATAL_ROW = "12:00:04.000 FATAL ● service-k message-g";
-export const JSON_ROW = '12:00:03.000 DEBUG ● service-h {"field-a":"value-a","field-b":200}';
-export const ERROR_ROW = "12:00:02.000 ERROR ● service-d message-c";
-export const WARN_ROW = "12:00:01.000 WARN ● service-d message-b";
-export const INFO_ROW = "12:00:00.000 INFO ● service-c message-a";
-
-export const NEWEST_FIRST = [
-  NOTICE_ROW,
-  EVENT_ROW,
-  FATAL_ROW,
-  JSON_ROW,
-  ERROR_ROW,
-  WARN_ROW,
-  INFO_ROW,
-];
-
-export async function renderLogList(receiver: TestReceiver, options?: AppOptions) {
-  await receiver.sendHttp("/v1/logs", otlpLogs);
-  const app = await renderPage(receiver, "logs", options);
-  await app.waitForFrame((frame) => tableRows(frame).length === NEWEST_FIRST.length);
+export async function renderLogList({ send = [], ...options }: AppOptions = {}) {
+  const app = await renderPage("logs", { ...options, send: [otlpLogs, ...send] });
+  await app.waitFor((frame) => frame.tableRows.length === 7);
   return app;
 }

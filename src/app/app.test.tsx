@@ -9,8 +9,6 @@ import { renderApp } from "#testing/app.tsx";
 import { at } from "#testing/clock.ts";
 import { otlpLogs } from "#testing/logs.ts";
 import { fakeSpanId, fakeTraceId, logsRequest, STATUS_CODE, tracesRequest } from "#testing/otlp.ts";
-import { startTestReceiver } from "#testing/receiver.ts";
-import { chartLines, keyHints, onDetails, onList, tableRows, tabStyles } from "#testing/screen.ts";
 import { otlpTraces } from "#testing/traces.ts";
 import traceList from "#traces/sql/trace-list.sql" with { type: "text" };
 
@@ -20,105 +18,85 @@ function queriesRun(runAndReadAll: Mock<DuckDBConnection["runAndReadAll"]>) {
 
 test("queries only the view on screen", async () => {
   using runAndReadAll = spyOn(DuckDBConnection.prototype, "runAndReadAll");
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
 
-  await app.waitForFrame(() => queriesRun(runAndReadAll).includes(serviceList));
+  await app.waitFor(() => queriesRun(runAndReadAll).includes(serviceList));
   expect(queriesRun(runAndReadAll)).not.toContain(traceList);
   expect(queriesRun(runAndReadAll)).not.toContain(metricList);
   expect(queriesRun(runAndReadAll)).not.toContain(logList);
 
-  app.mockInput.pressArrow("right");
-  await app.waitForFrame(() => queriesRun(runAndReadAll).includes(traceList));
+  app.press("right");
+  await app.waitFor(() => queriesRun(runAndReadAll).includes(traceList));
   expect(queriesRun(runAndReadAll)).not.toContain(metricList);
   expect(queriesRun(runAndReadAll)).not.toContain(logList);
 });
 
 test("hints the view's described keys, the selected row's actions first", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        {
-          traceId: fakeTraceId("1"),
-          spanId: fakeSpanId("1"),
-          name: "operation-a",
-          start: at(0),
-          end: at(10),
-        },
-      ],
-    }),
-  );
-  await using app = await renderApp(receiver, { size: { width: 160, height: 10 } });
+  const app = await renderApp({
+    size: { width: 160, height: 10 },
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [{ name: "operation-a", start: at(0), end: at(10) }],
+      }),
+    ],
+  });
   await app.openTab("traces");
   await app.waitForText("operation-a");
 
-  app.mockInput.pressTab();
-  const frame = await app.waitForFrame(onList);
+  app.press("tab");
+  const frame = await app.waitFor((frame) => frame.onList);
 
-  expect(keyHints(frame)).toBe(
+  expect(frame.hints).toBe(
     "/ search return open m mark y copy id right range s status o sort shift+o reverse p pause tab next region ? help",
   );
 });
 
 test("hints the jump to the next error only when a trace has errors", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        {
-          traceId: fakeTraceId("1"),
-          spanId: fakeSpanId("1"),
-          name: "operation-a",
-          start: at(0),
-          end: at(10),
-          status: { code: STATUS_CODE.error },
-        },
-      ],
-    }),
-  );
-  await using app = await renderApp(receiver, { size: { width: 160, height: 10 } });
+  const app = await renderApp({
+    size: { width: 160, height: 10 },
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [
+          { name: "operation-a", start: at(0), end: at(10), status: { code: STATUS_CODE.error } },
+        ],
+      }),
+    ],
+  });
   await app.openTab("traces");
   await app.waitForText("operation-a");
 
-  app.mockInput.pressTab();
-  const frame = await app.waitForFrame(onList);
+  app.press("tab");
+  const frame = await app.waitFor((frame) => frame.onList);
 
-  expect(keyHints(frame)).toStartWith("/ search return open m mark y copy id e next error");
+  expect(frame.hints).toStartWith("/ search return open m mark y copy id e next error");
 });
 
 test("follows to the traces tab when a log opens its trace", async () => {
-  await using receiver = await startTestReceiver();
   const traceId = fakeTraceId("2");
   const spanId = fakeSpanId("2a");
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [{ traceId, spanId, name: "operation-a", start: at(0), end: at(10) }],
-    }),
-  );
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({
-      service: "service-a",
-      logs: [{ time: at(5), body: "message-a", traceId, spanId }],
-    }),
-  );
-  await using app = await renderApp(receiver);
+  const app = await renderApp({
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [{ traceId, spanId, name: "operation-a", start: at(0), end: at(10) }],
+      }),
+      logsRequest({
+        service: "service-a",
+        logs: [{ time: at(5), body: "message-a", traceId, spanId }],
+      }),
+    ],
+  });
   await app.openTab("logs");
   await app.waitForText("message-a");
-  app.mockInput.pressTab();
+  app.press("tab");
   await app.waitForText("return open trace");
 
-  app.mockInput.pressEnter();
+  app.press("return");
 
   await app.waitForText("1 span");
-  expect(tabStyles(await app.captureSpans())).toEqual({
+  expect((await app.captureStyles()).tabs).toEqual({
     Services: { highlighted: false, fg: "muted" },
     Traces: { highlighted: false, fg: "text" },
     Metrics: { highlighted: false, fg: "muted" },
@@ -127,93 +105,75 @@ test("follows to the traces tab when a log opens its trace", async () => {
 });
 
 test("forgets where a trace was opened from after switching tabs", async () => {
-  await using receiver = await startTestReceiver();
   const traceId = fakeTraceId("2");
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        { traceId, spanId: fakeSpanId("2a"), name: "operation-a", start: at(0), end: at(10) },
-      ],
-    }),
-  );
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({ service: "service-a", logs: [{ time: at(5), body: "message-a", traceId }] }),
-  );
-  await using app = await renderApp(receiver);
+  const app = await renderApp({
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [{ traceId, name: "operation-a", start: at(0), end: at(10) }],
+      }),
+      logsRequest({ service: "service-a", logs: [{ time: at(5), body: "message-a", traceId }] }),
+    ],
+  });
   await app.openTab("logs");
   await app.waitForText("message-a");
-  app.mockInput.pressTab();
+  app.press("tab");
   await app.waitForText("return open trace");
-  app.mockInput.pressEnter();
+  app.press("return");
   await app.waitForText("1 span");
 
-  app.mockInput.pressTab({ shift: true });
-  await app.waitForFrame((frame) => !onDetails(frame));
-  app.mockInput.pressArrow("right");
+  app.press("shift+tab");
+  await app.waitFor((frame) => !frame.onDetails);
+  app.press("right");
   await app.waitForText("Waiting for metrics...");
-  app.mockInput.pressArrow("left");
+  app.press("left");
   await app.waitForText("1 span");
-  app.mockInput.pressTab();
-  await app.waitForFrame(onDetails);
-  app.mockInput.pressEscape();
+  app.press("tab");
+  await app.waitFor((frame) => frame.onDetails);
+  app.press("escape");
 
   await app.waitForText("1 trace");
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Traces: { highlighted: false, fg: "text" },
   });
 });
 
 test("clears the telemetry with ctrl+l and starts the current tab over", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        {
-          traceId: fakeTraceId("3"),
-          spanId: fakeSpanId("3a"),
-          name: "operation-a",
-          start: at(0),
-          end: at(10),
-        },
-      ],
-    }),
-  );
-  await using app = await renderApp(receiver);
+  const app = await renderApp({
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: [{ name: "operation-a", start: at(0), end: at(10) }],
+      }),
+    ],
+  });
   await app.openTab("traces");
-  app.mockInput.pressTab();
+  app.press("tab");
   await app.waitForText("operation-a");
-  app.mockInput.pressEnter();
+  app.press("return");
   await app.waitForText("1 span");
 
-  app.mockInput.pressKey("l", { ctrl: true });
+  app.press("ctrl+l");
 
   await app.waitForText("Waiting for traces...");
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Traces: { highlighted: false, fg: "text" },
   });
 });
 
 test("draws a tab whole on the frame it first shows", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await receiver.sendHttp("/v1/logs", otlpLogs);
-  await using app = await renderApp(receiver);
+  const app = await renderApp({ send: [otlpTraces, otlpLogs] });
   await app.waitForPage("services");
 
-  app.mockInput.pressArrow("right");
+  app.press("right");
   const traces = await app.waitForPage("traces");
-  expect(chartLines(traces)).not.toEqual([]);
-  expect(tableRows(traces)).toHaveLength(3);
+  expect(traces.chart).not.toEqual([]);
+  expect(traces.tableRows).toHaveLength(3);
 
-  app.mockInput.pressArrow("right");
+  app.press("right");
   await app.waitForPage("metrics");
-  app.mockInput.pressArrow("right");
+  app.press("right");
   const logs = await app.waitForPage("logs");
-  expect(chartLines(logs)).not.toEqual([]);
-  expect(tableRows(logs)).not.toEqual([]);
+  expect(logs.chart).not.toEqual([]);
+  expect(logs.tableRows).not.toEqual([]);
 });

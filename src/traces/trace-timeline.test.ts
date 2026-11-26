@@ -21,8 +21,7 @@ function traceAt(index: number, startMs: number) {
 
 async function loadTimeline(agesMs: number[]) {
   await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/traces",
+  await receiver.send(
     tracesRequest({
       service: "service-a",
       spans: agesMs.map((ageMs, index) => traceAt(index, now - ageMs)),

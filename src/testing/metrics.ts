@@ -1,8 +1,6 @@
-import { renderPage } from "./app.tsx";
+import { type AppOptions, renderPage } from "./app.tsx";
 import { atSecond } from "./clock.ts";
 import { metricsRequest, TEMPORALITY } from "./otlp.ts";
-import type { TestReceiver } from "./receiver.ts";
-import { onDetails, tableRows } from "./screen.ts";
 import { failedChildSpanId, failedTraceId } from "./traces.ts";
 
 export const DETAILS_SIZE = { width: 120, height: 45 };
@@ -153,37 +151,16 @@ export const otlpMetrics = metricsRequest(
   },
 );
 
-export const DELTA_COUNTER_ROW = "12:00:30.000 ● service-a metric.a counter 1";
-export const COUNTER_ROW = "12:00:30.000 ● service-b metric.b counter {request} 2";
-export const EXP_HISTOGRAM_ROW = "12:00:20.000 ● service-a metric.c.a exp histogram By 1";
-export const HISTOGRAM_ROW = "12:00:20.000 ● service-b metric.c.b histogram s 1";
-export const UPDOWNCOUNTER_ROW = "12:00:30.000 ● service-b metric.d updowncounter {thread} 1";
-export const GAUGE_ROW = "12:00:30.000 ● service-c metric.e gauge By 1";
-
-export const BY_NAME = [
-  DELTA_COUNTER_ROW,
-  COUNTER_ROW,
-  EXP_HISTOGRAM_ROW,
-  HISTOGRAM_ROW,
-  UPDOWNCOUNTER_ROW,
-  GAUGE_ROW,
-];
-
-interface ListOptions {
-  size?: { width: number; height: number };
-}
-
-export async function renderMetricList(receiver: TestReceiver, { size }: ListOptions = {}) {
-  await receiver.sendHttp("/v1/metrics", otlpMetrics);
-  const app = await renderPage(receiver, "metrics", { size });
-  await app.waitForFrame((frame) => tableRows(frame).length === BY_NAME.length);
+export async function renderMetricList({ send = [], ...options }: AppOptions = {}) {
+  const app = await renderPage("metrics", { ...options, send: [otlpMetrics, ...send] });
+  await app.waitFor((frame) => frame.tableRows.length === 6);
   return app;
 }
 
-export async function openMetric(receiver: TestReceiver, row: string) {
-  const app = await renderMetricList(receiver, { size: DETAILS_SIZE });
+export async function openMetric(row: string, options?: AppOptions) {
+  const app = await renderMetricList({ size: DETAILS_SIZE, ...options });
   await app.selectRow(row);
-  app.mockInput.pressEnter();
-  await app.waitForFrame(onDetails);
+  app.press("return");
+  await app.waitFor((frame) => frame.onDetails);
   return app;
 }

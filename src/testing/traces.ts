@@ -1,8 +1,6 @@
 import { type AppOptions, renderPage } from "./app.tsx";
 import { at } from "./clock.ts";
 import { fakeSpanId, fakeTraceId, SPAN_KIND, STATUS_CODE, tracesRequest } from "./otlp.ts";
-import type { TestReceiver } from "./receiver.ts";
-import { onDetails, pageHeader, spanDiffRows, tableRows } from "./screen.ts";
 
 export const nestedTraceId = fakeTraceId("1");
 export const failedTraceId = fakeTraceId("2");
@@ -18,14 +16,6 @@ export const failedChildSpanId = fakeSpanId("2b");
 
 export const ERROR_CAUSE = "error-a";
 export const ERROR_MESSAGE = `error-b: ${ERROR_CAUSE}`;
-
-export const NESTED_ROW = "12:00:00.000 ● service-a operation-a 3 120.0ms";
-export const FAILED_ROW = "12:00:01.000 ● service-c operation-d 3 2 500.0ms";
-export const SINGLE_ROW = "12:00:02.000 ● service-f operation-g 1 1.0ms";
-export const SLOW_NESTED_ROW = "12:00:04.000 ● service-a operation-a 4 300.0ms";
-
-export const NEWEST_FIRST = [SINGLE_ROW, FAILED_ROW, NESTED_ROW];
-export const WITH_SLOW_NESTED = [SLOW_NESTED_ROW, ...NEWEST_FIRST];
 
 export const otlpTraces = tracesRequest(
   {
@@ -146,18 +136,17 @@ export const otlpTraces = tracesRequest(
   },
 );
 
-export async function renderTraceList(receiver: TestReceiver, options?: AppOptions) {
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  const app = await renderPage(receiver, "traces", options);
-  await app.waitForFrame((frame) => tableRows(frame).length === NEWEST_FIRST.length);
+export async function renderTraceList({ send = [], ...options }: AppOptions = {}) {
+  const app = await renderPage("traces", { ...options, send: [otlpTraces, ...send] });
+  await app.waitFor((frame) => frame.tableRows.length === 3);
   return app;
 }
 
-export async function openTrace(receiver: TestReceiver, row: string, options?: AppOptions) {
-  const app = await renderTraceList(receiver, options);
+export async function openTrace(row: string, options?: AppOptions) {
+  const app = await renderTraceList(options);
   await app.selectRow(row);
-  app.mockInput.pressEnter();
-  await app.waitForFrame(onDetails);
+  app.press("return");
+  await app.waitFor((frame) => frame.onDetails);
   return app;
 }
 
@@ -209,16 +198,22 @@ export const slowNestedTraces = tracesRequest(
   },
 );
 
-export async function renderComparison(receiver: TestReceiver, options?: AppOptions) {
-  await receiver.sendHttp("/v1/traces", otlpTraces);
-  await receiver.sendHttp("/v1/traces", slowNestedTraces);
-  const app = await renderPage(receiver, "traces", options);
-  await app.waitForRows(WITH_SLOW_NESTED);
-  await app.selectRow(NESTED_ROW);
-  app.mockInput.pressKey("m");
-  await app.waitForFrame((frame) => pageHeader(frame).includes("vs operation-a 120.0ms"));
-  await app.selectRow(SLOW_NESTED_ROW);
-  app.mockInput.pressKey("v");
-  await app.waitForFrame((frame) => spanDiffRows(frame).length > 0);
+export async function renderComparison({ send = [], ...options }: AppOptions = {}) {
+  const app = await renderPage("traces", {
+    ...options,
+    send: [otlpTraces, slowNestedTraces, ...send],
+  });
+  await app.waitForRows([
+    "operation-a 4 300.0ms",
+    "operation-g",
+    "operation-d",
+    "operation-a 3 120.0ms",
+  ]);
+  await app.selectRow("operation-a 3 120.0ms");
+  app.press("m");
+  await app.waitFor((frame) => frame.header.includes("vs operation-a 120.0ms"));
+  await app.selectRow("operation-a 4 300.0ms");
+  app.press("v");
+  await app.waitFor((frame) => frame.spanDiffRows.length > 0);
   return app;
 }

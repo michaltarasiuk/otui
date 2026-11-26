@@ -2,20 +2,17 @@ import { expect, test } from "bun:test";
 
 import { renderApp } from "#testing/app.tsx";
 import { at } from "#testing/clock.ts";
-import { fakeSpanId, fakeTraceId, tracesRequest } from "#testing/otlp.ts";
-import { startTestReceiver } from "#testing/receiver.ts";
-import { keyHints, lineOf, onList, tabStyles } from "#testing/screen.ts";
+import { tracesRequest } from "#testing/otlp.ts";
 
 const WAITING_FOR_SERVICES = "Waiting for server or consumer spans...";
 
 test("starts on the services tab with the tab bar focused", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
 
   await app.waitForText(WAITING_FOR_SERVICES);
 
   expect(await app.waitForSelection("Services")).toStartWith("Services Traces Metrics Logs ");
-  expect(tabStyles(await app.captureSpans())).toEqual({
+  expect((await app.captureStyles()).tabs).toEqual({
     Services: { highlighted: true, fg: "text" },
     Traces: { highlighted: false, fg: "muted" },
     Metrics: { highlighted: false, fg: "muted" },
@@ -24,57 +21,54 @@ test("starts on the services tab with the tab bar focused", async () => {
 });
 
 test("switches tabs with the arrow keys while the tab bar is focused", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
   await app.waitForText(WAITING_FOR_SERVICES);
 
-  app.mockInput.pressArrow("right");
+  app.press("right");
   await app.waitForText("Waiting for traces...");
-  app.mockInput.pressArrow("right");
+  app.press("right");
   await app.waitForText("Waiting for metrics...");
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Metrics: { highlighted: true, fg: "text" },
   });
 
-  app.mockInput.pressArrow("right");
+  app.press("right");
   await app.waitForText("Waiting for logs...");
-  app.mockInput.pressArrow("left");
+  app.press("left");
   await app.waitForText("Waiting for metrics...");
 });
 
 test("moves focus between the tab bar and the view with tab and shift+tab", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
 
   await app.waitForText(WAITING_FOR_SERVICES);
-  expect(keyHints(await app.waitForText("tab next region"))).toBe("tab next region ? help");
+  expect((await app.waitForText("tab next region")).hints).toBe("tab next region ? help");
 
-  app.mockInput.pressTab();
-  await app.waitForFrame(onList);
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  app.press("tab");
+  await app.waitFor((frame) => frame.onList);
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Services: { highlighted: false, fg: "text" },
   });
 
-  app.mockInput.pressTab({ shift: true });
-  await app.waitForFrame((frame) => !onList(frame));
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  app.press("shift+tab");
+  await app.waitFor((frame) => !frame.onList);
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Services: { highlighted: true, fg: "text" },
   });
 });
 
 test("keeps showing the current tab while the view has focus", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderApp(receiver);
+  const app = await renderApp();
   await app.openTab("traces");
-  app.mockInput.pressArrow("right");
+  app.press("right");
   await app.waitForText("Waiting for metrics...");
-  app.mockInput.pressArrow("right");
+  app.press("right");
   await app.waitForText("Waiting for logs...");
 
-  app.mockInput.pressTab();
-  await app.waitForFrame(onList);
+  app.press("tab");
+  await app.waitFor((frame) => frame.onList);
 
-  expect(tabStyles(await app.captureSpans())).toEqual({
+  expect((await app.captureStyles()).tabs).toEqual({
     Services: { highlighted: false, fg: "muted" },
     Traces: { highlighted: false, fg: "muted" },
     Metrics: { highlighted: false, fg: "muted" },
@@ -83,36 +77,33 @@ test("keeps showing the current tab while the view has focus", async () => {
 });
 
 test("switches tabs and selects rows with the mouse", async () => {
-  await using receiver = await startTestReceiver();
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: ["1", "2"].map((digit, index) => ({
-        traceId: fakeTraceId(digit),
-        spanId: fakeSpanId(`${digit}a`),
-        name: `operation-${digit}`,
-        start: at(index),
-        end: at(index + 10),
-      })),
-    }),
-  );
-  await using app = await renderApp(receiver);
+  const app = await renderApp({
+    send: [
+      tracesRequest({
+        service: "service-a",
+        spans: ["1", "2"].map((digit, index) => ({
+          name: `operation-${digit}`,
+          start: at(index),
+          end: at(index + 10),
+        })),
+      }),
+    ],
+  });
   await app.waitForPage("services");
 
   await app.mockMouse.click(12, 0);
-  let frame = await app.waitForFrame(
-    (frame) => frame.includes("Traces over time") && frame.includes("operation-1"),
+  let frame = await app.waitFor(
+    (frame) => frame.text.includes("Traces over time") && frame.text.includes("operation-1"),
   );
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Traces: { highlighted: true, fg: "text" },
   });
 
-  await app.mockMouse.click(30, lineOf(frame, "operation-1"));
+  await app.mockMouse.click(30, frame.lineOf("operation-1"));
 
   expect(await app.waitForSelection("operation-1")).toContain("service-a");
-  frame = await app.waitForFrame((frame) => keyHints(frame).includes("/ search"));
-  expect(tabStyles(await app.captureSpans())).toMatchObject({
+  frame = await app.waitFor((frame) => frame.hints.includes("/ search"));
+  expect((await app.captureStyles()).tabs).toMatchObject({
     Traces: { highlighted: false, fg: "text" },
   });
 });

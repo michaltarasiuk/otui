@@ -7,14 +7,7 @@ import { z } from "zod";
 
 import { fakeTimers } from "#testing/clock.ts";
 import { silenceConsoleError } from "#testing/console.ts";
-import {
-  fakeSpanId,
-  fakeTraceId,
-  logsRequest,
-  metricsRequest,
-  TEMPORALITY,
-  tracesRequest,
-} from "#testing/otlp.ts";
+import { logsRequest, metricsRequest, TEMPORALITY, tracesRequest } from "#testing/otlp.ts";
 import { pollUntil } from "#testing/poll.ts";
 import { startTestReceiver, type TestReceiver } from "#testing/receiver.ts";
 import { LOOPBACK_HOST } from "#utils/loopback.ts";
@@ -40,27 +33,11 @@ const MEMORY_BATCH_SIZE = 5000;
 
 async function sendOneOfEach(receiver: TestReceiver, time: Date) {
   const end = new Date(time.getTime() + 1);
-  await receiver.sendHttp(
-    "/v1/traces",
-    tracesRequest({
-      service: "service-a",
-      spans: [
-        {
-          traceId: fakeTraceId("1"),
-          spanId: fakeSpanId("1"),
-          name: "operation-a",
-          start: time,
-          end,
-        },
-      ],
-    }),
+  await receiver.send(
+    tracesRequest({ service: "service-a", spans: [{ name: "operation-a", start: time, end }] }),
   );
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({ service: "service-a", logs: [{ time, body: "message-a" }] }),
-  );
-  await receiver.sendHttp(
-    "/v1/metrics",
+  await receiver.send(logsRequest({ service: "service-a", logs: [{ time, body: "message-a" }] }));
+  await receiver.send(
     metricsRequest({
       service: "service-a",
       metrics: [
@@ -100,8 +77,7 @@ async function sendLogBatches(receiver: TestReceiver) {
     (_, batch) => new Date(start + batch * 1000),
   );
   for (const time of times) {
-    await receiver.sendHttp(
-      "/v1/logs",
+    await receiver.send(
       logsRequest({
         service: "service-a",
         logs: Array.from({ length: MEMORY_BATCH_SIZE }, () => ({
@@ -196,8 +172,7 @@ test("drops logs by their observed time when they carry no time", async () => {
   await using receiver = await startTestReceiver({ retentionMs: RETENTION_MS });
   const connection = await receiver.connect();
 
-  await receiver.sendHttp(
-    "/v1/logs",
+  await receiver.send(
     logsRequest({
       service: "service-a",
       logs: [
@@ -216,10 +191,7 @@ test("drops logs that carry neither a time nor an observed time", async () => {
   await using receiver = await startTestReceiver({ retentionMs: RETENTION_MS });
   const connection = await receiver.connect();
 
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({ service: "service-a", logs: [{ body: "message-a" }] }),
-  );
+  await receiver.send(logsRequest({ service: "service-a", logs: [{ body: "message-a" }] }));
 
   expect(await pruneAndWaitFor(connection, eachTableWith(0))).toEqual(eachTableWith(0));
 });
@@ -230,8 +202,7 @@ test("releases the memory of pruned telemetry", async () => {
   const connection = await receiver.connect();
   const expired = new Date(Date.now() - 2 * RETENTION_MS);
 
-  await receiver.sendHttp(
-    "/v1/logs",
+  await receiver.send(
     logsRequest({
       service: "service-a",
       logs: Array.from({ length: EXPIRED_LOG_COUNT }, (_, index) => ({

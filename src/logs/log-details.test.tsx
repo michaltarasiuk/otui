@@ -2,23 +2,18 @@ import { expect, test } from "bun:test";
 
 import { renderPage } from "#testing/app.tsx";
 import { at, fakeClock } from "#testing/clock.ts";
-import { JSON_ROW, renderLogList } from "#testing/logs.ts";
+import { renderLogList } from "#testing/logs.ts";
 import { logsRequest } from "#testing/otlp.ts";
-import { startTestReceiver } from "#testing/receiver.ts";
-import { detailsLineOf, detailsLines, lineOf } from "#testing/screen.ts";
 import { failedTraceId, failedRootSpanId } from "#testing/traces.ts";
 import { GESTURE_PAUSE_MS } from "#ui/use-scroll-gesture.ts";
 
 test("shows the selected log's body, attributes, resource, and scope", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderLogList(receiver);
+  const app = await renderLogList();
 
-  app.mockInput.pressKey("END");
-  const frame = await app.waitForFrame((frame) =>
-    detailsLines(frame).includes("attribute.a value-a"),
-  );
+  app.press("end");
+  const frame = await app.waitFor((frame) => frame.details.includes("attribute.a value-a"));
 
-  expect(detailsLines(frame)).toEqual([
+  expect(frame.details).toEqual([
     `INFO ● service-c 12:00:00.000 ${failedTraceId} ${failedRootSpanId}`,
     "Body",
     "message-a",
@@ -33,13 +28,12 @@ test("shows the selected log's body, attributes, resource, and scope", async () 
 });
 
 test("pretty-prints a JSON body", async () => {
-  await using receiver = await startTestReceiver();
-  await using app = await renderLogList(receiver);
+  const app = await renderLogList();
 
-  await app.selectRow(JSON_ROW);
+  await app.selectRow("field-a");
   const frame = await app.waitForText('"field-b": 200');
 
-  expect(detailsLines(frame)).toEqual([
+  expect(frame.details).toEqual([
     "DEBUG ● service-h 12:00:03.000",
     "Body",
     "{",
@@ -52,50 +46,44 @@ test("pretty-prints a JSON body", async () => {
 });
 
 test("scrolls the log panel down and back up", async () => {
-  await using receiver = await startTestReceiver();
   const body = [
     "message-a",
     ...Array.from({ length: 40 }, (_, index) => `line-${index + 100}`),
   ].join("\n");
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({ service: "service-a", logs: [{ time: at(0), body }] }),
-  );
-  await using app = await renderPage(receiver, "logs");
-  await app.waitForFrame(
-    (frame) => frame.includes("Logs over time") && detailsLines(frame).includes("message-a"),
+  const app = await renderPage("logs", {
+    send: [logsRequest({ service: "service-a", logs: [{ time: at(0), body }] })],
+  });
+  await app.waitFor(
+    (frame) => frame.text.includes("Logs over time") && frame.details.includes("message-a"),
   );
 
-  app.mockInput.pressKey("d", { ctrl: true });
-  await app.waitForFrame((frame) => !detailsLines(frame).includes("message-a"));
+  app.press("ctrl+d");
+  await app.waitFor((frame) => !frame.details.includes("message-a"));
 
-  app.mockInput.pressKey("u", { ctrl: true });
-  await app.waitForFrame((frame) => detailsLines(frame).includes("message-a"));
+  app.press("ctrl+u");
+  await app.waitFor((frame) => frame.details.includes("message-a"));
 });
 
 test("scrolls the log panel only once the list's scroll gesture pauses", async () => {
   const clock = fakeClock(at(10_000));
-  await using receiver = await startTestReceiver();
   const body = [
     "message-a",
     ...Array.from({ length: 40 }, (_, index) => `line-${index + 100}`),
   ].join("\n");
-  await receiver.sendHttp(
-    "/v1/logs",
-    logsRequest({ service: "service-a", logs: [{ time: at(0), body }] }),
+  const app = await renderPage("logs", {
+    send: [logsRequest({ service: "service-a", logs: [{ time: at(0), body }] })],
+  });
+  const frame = await app.waitFor(
+    (frame) => frame.text.includes("Logs over time") && frame.details.includes("Body"),
   );
-  await using app = await renderPage(receiver, "logs");
-  const frame = await app.waitForFrame(
-    (frame) => frame.includes("Logs over time") && detailsLines(frame).includes("Body"),
-  );
-  const listLine = lineOf(frame, "● service-a");
-  const panelLine = detailsLineOf(frame, "line-100");
+  const listLine = frame.lineOf("● service-a");
+  const panelLine = frame.detailsLineOf("line-100");
 
   await app.mockMouse.scroll(2, listLine, "down");
   await app.mockMouse.scroll(2, panelLine, "down");
-  expect(detailsLines(await app.waitForText("Body"))).toContain("Body");
+  expect((await app.waitForText("Body")).details).toContain("Body");
 
   clock.advance(GESTURE_PAUSE_MS + 1);
   await app.mockMouse.scroll(2, panelLine, "down");
-  await app.waitForFrame((frame) => !detailsLines(frame).includes("Body"));
+  await app.waitFor((frame) => !frame.details.includes("Body"));
 });

@@ -2,8 +2,8 @@ import { test } from "bun:test";
 
 import { useState } from "react";
 
+import type { Frame } from "#testing/frame.ts";
 import { render } from "#testing/render.tsx";
-import { textLines } from "#testing/screen.ts";
 
 import { Key } from "./key-hints.tsx";
 import { type Selection, useSelection } from "./use-selection.ts";
@@ -33,7 +33,7 @@ function SelectionProbe({ items: initialItems, initialKey, keys }: SelectionProb
 }
 
 function shows(selected: string) {
-  return (frame: string) => textLines(frame).includes(`selected: ${selected}`);
+  return (frame: Frame) => frame.lines.includes(`selected: ${selected}`);
 }
 
 function isError(item: string) {
@@ -41,16 +41,16 @@ function isError(item: string) {
 }
 
 test("starts on the initial key", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe items={["alpha", "beta", "gamma"]} initialKey="gamma" keys={{}} />,
     SCREEN_SIZE,
   );
 
-  await screen.waitForFrame(shows("gamma (2)"));
+  await screen.waitFor(shows("gamma (2)"));
 });
 
 test("follows the selected item when the list is reordered", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={["alpha", "beta", "gamma"]}
       keys={{
@@ -60,17 +60,17 @@ test("follows the selected item when the list is reordered", async () => {
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("alpha (0)"));
-  screen.mockInput.pressKey("j");
-  await screen.waitForFrame(shows("beta (1)"));
+  await screen.waitFor(shows("alpha (0)"));
+  screen.press("j");
+  await screen.waitFor(shows("beta (1)"));
 
-  screen.mockInput.pressKey("r");
+  screen.press("r");
 
-  await screen.waitForFrame(shows("beta (2)"));
+  await screen.waitFor(shows("beta (2)"));
 });
 
 test("selects a key that joins the list in the same update", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={["alpha", "beta"]}
       keys={{
@@ -82,15 +82,15 @@ test("selects a key that joins the list in the same update", async () => {
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("alpha (0)"));
+  await screen.waitFor(shows("alpha (0)"));
 
-  screen.mockInput.pressKey("d");
+  screen.press("d");
 
-  await screen.waitForFrame(shows("delta (2)"));
+  await screen.waitFor(shows("delta (2)"));
 });
 
 test("falls back to the first item while the selected one is gone and returns to it", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={["alpha", "beta", "gamma"]}
       keys={{
@@ -101,19 +101,19 @@ test("falls back to the first item while the selected one is gone and returns to
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("alpha (0)"));
-  screen.mockInput.pressKey("j");
-  await screen.waitForFrame(shows("beta (1)"));
+  await screen.waitFor(shows("alpha (0)"));
+  screen.press("j");
+  await screen.waitFor(shows("beta (1)"));
 
-  screen.mockInput.pressKey("x");
-  await screen.waitForFrame(shows("alpha (0)"));
-  screen.mockInput.pressKey("y");
+  screen.press("x");
+  await screen.waitFor(shows("alpha (0)"));
+  screen.press("y");
 
-  await screen.waitForFrame(shows("beta (1)"));
+  await screen.waitFor(shows("beta (1)"));
 });
 
 test("selects nothing in an empty list and the first item once items arrive", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={[]}
       keys={{
@@ -124,17 +124,17 @@ test("selects nothing in an empty list and the first item once items arrive", as
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("none (-1)"));
-  screen.mockInput.pressKey("j");
-  screen.mockInput.pressKey("e");
+  await screen.waitFor(shows("none (-1)"));
+  screen.press("j");
+  screen.press("e");
 
-  screen.mockInput.pressKey("a");
+  screen.press("a");
 
-  await screen.waitForFrame(shows("alpha (0)"));
+  await screen.waitFor(shows("alpha (0)"));
 });
 
 test("counts every move and jump made in one update", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={["alpha", "error 1", "beta", "error 2", "gamma"]}
       keys={{
@@ -150,17 +150,17 @@ test("counts every move and jump made in one update", async () => {
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("alpha (0)"));
+  await screen.waitFor(shows("alpha (0)"));
 
-  screen.mockInput.pressKey("j");
-  await screen.waitForFrame(shows("beta (2)"));
-  screen.mockInput.pressKey("e");
+  screen.press("j");
+  await screen.waitFor(shows("beta (2)"));
+  screen.press("e");
 
-  await screen.waitForFrame(shows("error 1 (1)"));
+  await screen.waitFor(shows("error 1 (1)"));
 });
 
 test("jumps to the next match in either direction, continuing from the other end", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={["alpha", "error 1", "beta", "error 2"]}
       keys={{
@@ -170,21 +170,21 @@ test("jumps to the next match in either direction, continuing from the other end
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("alpha (0)"));
+  await screen.waitFor(shows("alpha (0)"));
 
-  screen.mockInput.pressKey("e");
-  await screen.waitForFrame(shows("error 1 (1)"));
-  screen.mockInput.pressKey("e");
-  await screen.waitForFrame(shows("error 2 (3)"));
-  screen.mockInput.pressKey("e");
-  await screen.waitForFrame(shows("error 1 (1)"));
-  screen.mockInput.pressKey("e", { shift: true });
+  screen.press("e");
+  await screen.waitFor(shows("error 1 (1)"));
+  screen.press("e");
+  await screen.waitFor(shows("error 2 (3)"));
+  screen.press("e");
+  await screen.waitFor(shows("error 1 (1)"));
+  screen.press("shift+e");
 
-  await screen.waitForFrame(shows("error 2 (3)"));
+  await screen.waitFor(shows("error 2 (3)"));
 });
 
 test("stays put when jumping finds no other match", async () => {
-  await using screen = await render(
+  const screen = await render(
     <SelectionProbe
       items={["alpha", "beta", "gamma"]}
       keys={{
@@ -196,9 +196,9 @@ test("stays put when jumping finds no other match", async () => {
     />,
     SCREEN_SIZE,
   );
-  await screen.waitForFrame(shows("alpha (0)"));
+  await screen.waitFor(shows("alpha (0)"));
 
-  screen.mockInput.pressKey("e");
+  screen.press("e");
 
-  await screen.waitForFrame(shows("beta (1)"));
+  await screen.waitFor(shows("beta (1)"));
 });
