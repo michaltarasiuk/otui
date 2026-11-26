@@ -124,14 +124,14 @@ interface RouteProps<P extends Page> {
 }
 
 export function Route<P extends Page>({ page, children }: RouteProps<P>) {
-  const location = use(LocationContext);
-  const tab = PAGE_TABS[page];
-  const stack = location.stacks[tab];
-  const params = stack.find((to): to is Params<P> => to.page === page);
-  const visible = location.tab === tab && stack.at(-1) === params;
+  const { tab, stacks } = use(LocationContext);
+  const params = Object.values(stacks)
+    .flat()
+    .find((to): to is Params<P> => to.page === page);
 
   if (!isDefined(params)) {
     return null;
   }
+  const visible = params === stacks[tab].at(-1);
   return <Activity mode={visible ? "visible" : "hidden"}>{children(params)}</Activity>;
 }
