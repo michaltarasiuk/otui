@@ -4,7 +4,6 @@ import { DuckDBConnection } from "@duckdb/node-api";
 
 import logList from "#logs/sql/log-list.sql" with { type: "text" };
 import metricList from "#metrics/sql/metric-list.sql" with { type: "text" };
-import serviceList from "#services/sql/service-list.sql" with { type: "text" };
 import { renderApp } from "#testing/app.tsx";
 import { at } from "#testing/clock.ts";
 import { otlpLogs } from "#testing/logs.ts";
@@ -20,14 +19,12 @@ test("queries only the view on screen", async () => {
   using runAndReadAll = spyOn(DuckDBConnection.prototype, "runAndReadAll");
   const app = await renderApp();
 
-  await app.waitFor(() => queriesRun(runAndReadAll).includes(serviceList));
-  expect(queriesRun(runAndReadAll)).not.toContain(traceList);
+  await app.waitFor(() => queriesRun(runAndReadAll).includes(traceList));
   expect(queriesRun(runAndReadAll)).not.toContain(metricList);
   expect(queriesRun(runAndReadAll)).not.toContain(logList);
 
   app.press("right");
-  await app.waitFor(() => queriesRun(runAndReadAll).includes(traceList));
-  expect(queriesRun(runAndReadAll)).not.toContain(metricList);
+  await app.waitFor(() => queriesRun(runAndReadAll).includes(metricList));
   expect(queriesRun(runAndReadAll)).not.toContain(logList);
 });
 
@@ -97,7 +94,6 @@ test("follows to the traces tab when a log opens its trace", async () => {
 
   await app.waitForText("1 span");
   expect((await app.captureStyles()).tabs).toEqual({
-    Services: { highlighted: false, fg: "muted" },
     Traces: { highlighted: false, fg: "text" },
     Metrics: { highlighted: false, fg: "muted" },
     Logs: { highlighted: false, fg: "muted" },
@@ -163,9 +159,6 @@ test("clears the telemetry with ctrl+l and starts the current tab over", async (
 
 test("draws a tab whole on the frame it first shows", async () => {
   const app = await renderApp({ send: [otlpTraces, otlpLogs] });
-  await app.waitForPage("services");
-
-  app.press("right");
   const traces = await app.waitForPage("traces");
   expect(traces.chart).not.toEqual([]);
   expect(traces.tableRows).toHaveLength(3);

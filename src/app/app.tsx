@@ -5,8 +5,6 @@ import { Fragment, Suspense, useState } from "react";
 import { LogsPage } from "#logs/logs-page.tsx";
 import { MetricsPage } from "#metrics/metrics-page.tsx";
 import { SeriesPage } from "#metrics/series-page.tsx";
-import { ServiceMapPage } from "#services/service-map-page.tsx";
-import { ServicesPage } from "#services/services-page.tsx";
 import { TraceComparePage } from "#traces/trace-compare-page.tsx";
 import type { MarkedTrace } from "#traces/trace.ts";
 import { TracesPage } from "#traces/traces-page.tsx";
@@ -94,30 +92,6 @@ export function App({ httpUrl, grpcUrl, mcpUrl, onClear }: AppProps) {
             <Content>
               <Suspense fallback={<PageLoading />}>
                 <Routes location={location}>
-                  <Route page="services">
-                    {() => (
-                      <ErrorBoundary fallback={<PageError text="Failed to load services" />}>
-                        <ServicesPage
-                          onOpenTraces={(service, operation) =>
-                            navigate({ page: "traces", service, operation })
-                          }
-                          onOpenMap={() => navigate({ page: "map" })}
-                        />
-                      </ErrorBoundary>
-                    )}
-                  </Route>
-                  <Route page="map">
-                    {() => (
-                      <ErrorBoundary
-                        fallback={<PageError text="Failed to load the service map" onBack={back} />}
-                      >
-                        <ServiceMapPage
-                          onOpenTraces={(service) => navigate({ page: "traces", service })}
-                          onBack={back}
-                        />
-                      </ErrorBoundary>
-                    )}
-                  </Route>
                   <Route page="traces">
                     {({ service, operation }) => (
                       <ErrorBoundary

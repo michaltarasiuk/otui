@@ -12,7 +12,7 @@ test("shows where the receiver listens beside the tabs", async () => {
   const http = new URL(app.receiver.httpUrl).host;
   const grpc = new URL(app.receiver.grpcUrl).host;
   expect(frame.tabBar).toBe(
-    `Services Traces Metrics Logs nothing received yet · OTLP/HTTP ${http} · OTLP/gRPC ${grpc}`,
+    `Traces Metrics Logs nothing received yet · OTLP/HTTP ${http} · OTLP/gRPC ${grpc}`,
   );
   expect(frame.hints).toBe("tab next region ? help");
 });
@@ -33,6 +33,6 @@ test("counts the items received and says when the last arrived", async () => {
 
   const frame = await app.waitForText("2 items received");
   expect(frame.tabBar).toMatch(
-    /^Services Traces Metrics Logs 2 items received (just now|\d+s ago) · OTLP\/HTTP/,
+    /^Traces Metrics Logs 2 items received (just now|\d+s ago) · OTLP\/HTTP/,
   );
 });

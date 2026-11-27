@@ -3,11 +3,9 @@ import { Activity, createContext, use, useDeferredValue, useState } from "react"
 import type { Metric } from "#metrics/metric.ts";
 import { isDefined } from "#utils/is-defined.ts";
 
-export type Tab = "services" | "traces" | "metrics" | "logs";
+export type Tab = "traces" | "metrics" | "logs";
 
 export type To =
-  | { page: "services" }
-  | { page: "map" }
   | { page: "traces"; service?: string; operation?: string }
   | { page: "trace"; traceId: string; spanId?: string }
   | { page: "compare"; before: string; after: string }
@@ -20,8 +18,6 @@ type Page = To["page"];
 type Params<P extends Page> = Extract<To, { page: P }>;
 
 const PAGE_TABS: Record<Page, Tab> = {
-  services: "services",
-  map: "services",
   traces: "traces",
   trace: "traces",
   compare: "traces",
@@ -41,9 +37,8 @@ interface History {
 }
 
 const START_LOCATION: Location = {
-  tab: "services",
+  tab: "traces",
   stacks: {
-    services: [{ page: "services" }],
     traces: [{ page: "traces" }],
     metrics: [{ page: "metrics" }],
     logs: [{ page: "logs" }],

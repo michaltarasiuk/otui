@@ -14,7 +14,6 @@ interface TabOption extends TabSelectOption {
 }
 
 export const TABS = [
-  { name: "Services", description: "", value: "services" },
   { name: "Traces", description: "", value: "traces" },
   { name: "Metrics", description: "", value: "metrics" },
   { name: "Logs", description: "", value: "logs" },

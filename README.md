@@ -44,32 +44,10 @@ anyone who can reach the port can send data.
 
 ## Views
 
-otui opens on Services. The tabs follow the way you dig into a problem:
-Services shows which service is slow or failing, Traces shows where the time
-goes, and Metrics and Logs fill in the rest. The views link to each other, so
-an operation opens its traces, a span its logs, and a log or an exemplar its
+otui opens on Traces. The tabs follow the way you dig into a problem: Traces
+shows where the time goes, and Metrics and Logs fill in the rest. The views
+link to each other, so a span opens its logs, and a log or an exemplar its
 trace.
-
-### Services
-
-![Services view listing each service's rate, error rate, and p50, p95, and p99 latency, with the selected service's operations below](docs/services-page.png)
-
-Each service's rate, error rate, and p50, p95, and p99
-latency over the last 5 minutes come from its server and consumer spans, with
-the selected service's operations below. `return` opens the service's traces,
-`o` sorts by rate, errors, or p95, and `/` searches service names. `tab` moves
-into the operations, where `return` opens the traces with that operation,
-slowest first. A trace opened from there starts at the operation's span.
-
-![Service map as a tree of services from edge-gateway and analytics down to the services they call, with hollow leaves for peers such as redis, sqlite, nats, and external hosts, and each call's rate, error rate, p50, p95, and p99 latency, and span count](docs/service-map-page.png)
-
-`m` opens the service map: which service calls which over the same 5 minutes,
-as a tree from the services nobody calls, with each call's rate, error rate,
-and latency. A call is a span whose parent is in another service. A client or
-producer span with no child shows the peer it called, such as a database, as
-a hollow `○` leaf, named by `peer.service`, `db.system.name`, `db.system`,
-`messaging.system`, or `server.address`. `return` opens the selected service's
-traces.
 
 ### Traces
 
@@ -178,12 +156,12 @@ browse. Add it to Claude Code with:
 claude mcp add --transport http otui http://127.0.0.1:4320/mcp
 ```
 
-The tools follow the views: `list_services`, `list_operations`, and
-`get_service_map`; `list_traces`, `get_trace`, `get_span`, and
-`compare_traces`; `list_metrics` and `get_metric`; and `list_logs`. They only
-read, and their searches take the same terms as the app's. `get_trace`
-outlines the span tree with the critical path, and keeps the critical path and
-the spans with errors when a trace is large.
+The tools cover services and follow the views: `list_services`,
+`list_operations`, and `get_service_map`; `list_traces`, `get_trace`,
+`get_span`, and `compare_traces`; `list_metrics` and `get_metric`; and
+`list_logs`. They only read, and their searches take the same terms as the
+app's. `get_trace` outlines the span tree with the critical path, and keeps
+the critical path and the spans with errors when a trace is large.
 
 The MCP server listens only on 127.0.0.1, whatever `--host` says, and refuses
 requests whose `Host` or `Origin` header names another site. It has no
@@ -258,7 +236,8 @@ Each view queries DuckDB with SQL built from its own search and filters, and
 [OpenTUI](https://opentui.com/) draws the results.
 
 - `src/receiver/`: DuckDB instance and OTLP receiver.
-- `src/services/`, `src/traces/`, `src/metrics/`, `src/logs/`: each view with
-  its SQL, queries, and screens.
+- `src/traces/`, `src/metrics/`, `src/logs/`: each view with its SQL, queries,
+  and screens.
+- `src/services/`: the service and service map SQL behind the MCP tools.
 - `src/app/`: the app shell that puts the views together.
 - `src/mcp/`: the MCP server over the same queries.
