@@ -9,11 +9,6 @@ import { latestRate } from "#metrics/intervals.ts";
 import { BY_NAME, type Metric } from "#metrics/metric.ts";
 import { readMetricList, readMetricSeries, readNamedMetrics } from "#metrics/read-metrics.ts";
 import type { Series } from "#metrics/series.ts";
-import {
-  readServiceCalls,
-  readServiceOperations,
-  readServiceList,
-} from "#services/read-services.ts";
 import type { Attributes } from "#telemetry/attributes.ts";
 import { readTraceList, readSpanContent, readTraceSpans } from "#traces/read-traces.ts";
 import {
@@ -201,62 +196,6 @@ function seriesSummary(metric: Metric, series: Series) {
 }
 
 export function registerTools(server: McpServer, connection: DuckDBConnection) {
-  server.registerTool(
-    "list_services",
-    {
-      title: "List services",
-      description:
-        "Services seen in the last 5 minutes, with request rate per second, error ratio, " +
-        "and p50, p95, and p99 latency in milliseconds, from their server and consumer spans.",
-      inputSchema: z.strictObject({
-        search: z.string().default("").describe("Part of a service name"),
-        sort: z.enum(["rate", "error_ratio", "p95_ms"]).default("rate").describe("Highest first"),
-      }),
-      annotations: READ_ONLY,
-    },
-    async ({ search, sort }) => {
-      const services = await readServiceList(connection, { search, sort: descending(sort) });
-      return jsonResult(services);
-    },
-  );
-
-  server.registerTool(
-    "list_operations",
-    {
-      title: "List a service's operations",
-      description:
-        "A service's operations (server and consumer span names) in the last 5 minutes, " +
-        "with rate per second, error ratio, and p50, p95, and p99 latency in milliseconds.",
-      inputSchema: z.strictObject({
-        service: z.string().describe("Service name, as list_services returns it"),
-      }),
-      annotations: READ_ONLY,
-    },
-    async ({ service }) => {
-      const operations = await readServiceOperations(connection, service);
-      return jsonResult(operations);
-    },
-  );
-
-  server.registerTool(
-    "get_service_map",
-    {
-      title: "Get the service map",
-      description:
-        "Calls between services in the last 5 minutes, from spans whose parent is in another " +
-        "service, with rate per second, error ratio, and p50, p95, and p99 latency " +
-        "in milliseconds of the called spans. " +
-        "External calls are client or producer spans with no child span, " +
-        "named by peer.service, db.system.name, db.system, messaging.system, or server.address.",
-      inputSchema: z.strictObject({}),
-      annotations: READ_ONLY,
-    },
-    async () => {
-      const calls = await readServiceCalls(connection);
-      return jsonResult(calls);
-    },
-  );
-
   server.registerTool(
     "list_traces",
     {

@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 
-import { at, fakeClock } from "#testing/clock.ts";
 import { startTestMcp } from "#testing/mcp.ts";
 import { logsRequest, metricsRequest, SEVERITY_NUMBER, TEMPORALITY } from "#testing/otlp.ts";
 import {
@@ -26,13 +25,10 @@ test("lists read-only tools for each view", async () => {
   expect(tools.map((tool) => tool.name).toSorted()).toEqual([
     "compare_traces",
     "get_metric",
-    "get_service_map",
     "get_span",
     "get_trace",
     "list_logs",
     "list_metrics",
-    "list_operations",
-    "list_services",
     "list_traces",
   ]);
   expect(tools.every((tool) => tool.annotations?.readOnlyHint === true)).toBe(true);
@@ -162,30 +158,6 @@ test("reads a span's attributes and resource", async () => {
     attributes: { "attribute.a": "value-a" },
     resource: { "service.name": "service-a", "resource.a": "value-a" },
   });
-});
-
-test("lists services and their operations", async () => {
-  fakeClock(at(60_000));
-  const mcp = await startTestMcp({ send: [otlpTraces] });
-
-  const services = await mcp.callJson("list_services");
-  const operations = await mcp.callJson("list_operations", { service: "service-c" });
-
-  expect(services).toContainEqual(expect.objectContaining({ service_name: "service-c" }));
-  expect(operations).toEqual([expect.objectContaining({ name: "operation-d", error_ratio: 1 })]);
-});
-
-test("maps calls between services and to external peers", async () => {
-  fakeClock(at(60_000));
-  const mcp = await startTestMcp({ send: [otlpTraces] });
-
-  const calls = await mcp.callJson("get_service_map");
-
-  expect(calls).toEqual([
-    expect.objectContaining({ caller: "service-a", callee: "service-b", is_external: false }),
-    expect.objectContaining({ caller: "service-b", callee: "peer-a", is_external: true }),
-    expect.objectContaining({ caller: "service-c", callee: "service-d", error_ratio: 1 }),
-  ]);
 });
 
 test("lists logs at or above a severity", async () => {

@@ -156,12 +156,11 @@ browse. Add it to Claude Code with:
 claude mcp add --transport http otui http://127.0.0.1:4320/mcp
 ```
 
-The tools cover services and follow the views: `list_services`,
-`list_operations`, and `get_service_map`; `list_traces`, `get_trace`,
-`get_span`, and `compare_traces`; `list_metrics` and `get_metric`; and
-`list_logs`. They only read, and their searches take the same terms as the
-app's. `get_trace` outlines the span tree with the critical path, and keeps
-the critical path and the spans with errors when a trace is large.
+The tools follow the views: `list_traces`, `get_trace`, `get_span`, and
+`compare_traces`; `list_metrics` and `get_metric`; and `list_logs`. They only
+read, and their searches take the same terms as the app's. `get_trace`
+outlines the span tree with the critical path, and keeps the critical path and
+the spans with errors when a trace is large.
 
 The MCP server listens only on 127.0.0.1, whatever `--host` says, and refuses
 requests whose `Host` or `Origin` header names another site. It has no
@@ -238,6 +237,5 @@ Each view queries DuckDB with SQL built from its own search and filters, and
 - `src/receiver/`: DuckDB instance and OTLP receiver.
 - `src/traces/`, `src/metrics/`, `src/logs/`: each view with its SQL, queries,
   and screens.
-- `src/services/`: the service and service map SQL behind the MCP tools.
 - `src/app/`: the app shell that puts the views together.
 - `src/mcp/`: the MCP server over the same queries.
