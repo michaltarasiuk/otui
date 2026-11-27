@@ -18,8 +18,6 @@ import { type ChartWindow, gapSlots, meanLine, quantileLines, rateLine } from ".
 import { PERCENTILES } from "./series-stats.ts";
 import type { NumberPoint, Series, SeriesPoints } from "./series.ts";
 
-const CHART_HEIGHT = 8;
-
 const MIN_WINDOW_MS = MINUTE_MS;
 
 const black = RGBA.fromHex("#000000");
@@ -126,7 +124,7 @@ function SeriesPlot({ metric, series, color, windowStart, windowMs }: SeriesPlot
 
   return (
     <LineChart
-      height={CHART_HEIGHT}
+      height={8}
       includeZero={metric.type !== "gauge" && metric.type !== "updowncounter"}
       startLabel={formatTime(start)}
       endLabel="now"

@@ -4,13 +4,7 @@ import { compareText } from "#utils/text.ts";
 import { type AttributeValues, attributeValues } from "./attribute-values.ts";
 import type { Series } from "./series.ts";
 
-const MIN_COLUMN_WEIGHT = 8;
-const MAX_COLUMN_WEIGHT = 32;
-
 const ATTRIBUTE_SOURCES = ["attributes", "resource_attributes"] as const;
-
-const LABEL_SEPARATOR = " · ";
-const UNLABELED_SERIES = "no attributes";
 
 type AttributeSource = (typeof ATTRIBUTE_SOURCES)[number];
 
@@ -43,7 +37,7 @@ function toColumns(source: AttributeSource, attributes: AttributeValues[]) {
 
 function columnWeight(values: string[]) {
   const longest = Math.max(...values.map((value) => value.length));
-  return clamp(longest, MIN_COLUMN_WEIGHT, MAX_COLUMN_WEIGHT);
+  return clamp(longest, 8, 32);
 }
 
 export function cellValue(series: Series, { key, source }: AttributeColumn) {
@@ -53,7 +47,7 @@ export function cellValue(series: Series, { key, source }: AttributeColumn) {
 
 export function seriesLabel(series: Series, columns: AttributeColumn[]) {
   const values = columns.map((column) => cellValue(series, column)).filter((value) => value !== "");
-  return values.length === 0 ? UNLABELED_SERIES : values.join(LABEL_SEPARATOR);
+  return values.length === 0 ? "no attributes" : values.join(" · ");
 }
 
 export function sortByColumns(series: Series[], columns: AttributeColumn[]) {

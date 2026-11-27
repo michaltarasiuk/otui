@@ -30,7 +30,6 @@ import { traceOutline } from "#traces/trace-outline.ts";
 import { sameRoot, type Trace } from "#traces/trace.ts";
 import { isDefined } from "#utils/is-defined.ts";
 
-const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 200;
 const MAX_TRACE_SPANS = 200;
 const MAX_COMPARED_ROWS = 50;
@@ -52,7 +51,7 @@ const Limit = z
   .int()
   .min(1)
   .max(MAX_LIMIT)
-  .default(DEFAULT_LIMIT)
+  .default(20)
   .describe("How many to return at most");
 
 function textContent(text: string) {

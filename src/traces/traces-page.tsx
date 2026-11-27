@@ -33,10 +33,6 @@ const MIN_TABLE_HEIGHT = 6;
 const MIN_HEIGHT_FOR_HISTOGRAM =
   PAGE_HEADER_HEIGHT + HISTOGRAM_HEIGHT + MIN_TABLE_HEIGHT + KEY_HINTS_HEIGHT;
 
-const NEWEST_FIRST: TraceSort = { column: "start_time", descending: true };
-
-const SLOWEST_FIRST: TraceSort = { column: "duration_ms", descending: true };
-
 function hasErrors(trace: Trace) {
   return trace.error_count > 0;
 }
@@ -68,7 +64,10 @@ export function TracesPage({
   const [errorsOnly, setErrorsOnly] = useState(false);
   const deferredErrorsOnly = useDeferredValue(errorsOnly);
   const timeRange = useTimeRange();
-  const [sort, setSort] = useState(isDefined(operation) ? SLOWEST_FIRST : NEWEST_FIRST);
+  const [sort, setSort] = useState<TraceSort>({
+    column: isDefined(operation) ? "duration_ms" : "start_time",
+    descending: true,
+  });
   const deferredSort = useDeferredValue(sort);
 
   const filter = {

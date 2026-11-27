@@ -4,8 +4,6 @@ import { isDefined } from "#utils/is-defined.ts";
 
 import { Key } from "./key-hints.tsx";
 
-const NOTICE_MS = 1500;
-
 interface CopyNotice {
   text: "copied" | "copy failed";
 }
@@ -30,7 +28,7 @@ function useCopy() {
     if (!isDefined(notice)) {
       return;
     }
-    const timeout = setTimeout(() => setNotice(undefined), NOTICE_MS);
+    const timeout = setTimeout(() => setNotice(undefined), 1500);
     return () => clearTimeout(timeout);
   }, [notice]);
 

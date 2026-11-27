@@ -1,14 +1,13 @@
 import { isDefined } from "#utils/is-defined.ts";
+import { indent } from "#utils/text.ts";
 import { formatDuration, formatOffset } from "#utils/time.ts";
 
 import { ancestorIds, criticalPath } from "./span-tree.ts";
 import type { Span } from "./span.ts";
 
-const INDENT = "  ";
-
 function spanLine(span: Span, onCriticalPath: boolean) {
   return [
-    `${onCriticalPath ? "*" : " "} ${INDENT.repeat(span.depth)}${span.name}`,
+    `${onCriticalPath ? "*" : " "} ${indent(span.depth)}${span.name}`,
     `[${span.service_name ?? "unknown"}, ${span.kind}]`,
     formatDuration(span.duration_ms),
     `at ${formatOffset(span.offset_ms)}`,

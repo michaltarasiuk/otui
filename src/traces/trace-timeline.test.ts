@@ -5,9 +5,8 @@ import { tracesRequest } from "#testing/otlp.ts";
 import { startTestReceiver } from "#testing/receiver.ts";
 import traceTimeline from "#traces/sql/trace-timeline.sql" with { type: "text" };
 
-const MIDDLE_OF_BUCKET_MS = TIME_BUCKET_MS / 2;
 const newestBucketMs = bucketStart(Date.now());
-const now = newestBucketMs + MIDDLE_OF_BUCKET_MS;
+const now = newestBucketMs + TIME_BUCKET_MS / 2;
 
 function traceAt(index: number, startMs: number) {
   return {

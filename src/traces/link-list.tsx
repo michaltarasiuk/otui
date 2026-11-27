@@ -6,8 +6,6 @@ import type { Selection } from "#ui/use-selection.ts";
 
 import type { Span, SpanLink } from "./span.ts";
 
-const NESTED_INDENT = 2;
-
 function linkLabel(link: SpanLink, traceId: string) {
   const ids = `${link.trace_id} ${link.span_id}`;
   if (link.trace_id === traceId) {
@@ -43,7 +41,7 @@ export function LinkList({ traceId, selection }: LinkListProps) {
             </Cell>
           </Row>
           {link.attributes.length > 0 && (
-            <box paddingLeft={NESTED_INDENT}>
+            <box paddingLeft={2}>
               <KeyValueList entries={link.attributes} />
             </box>
           )}

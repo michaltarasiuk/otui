@@ -19,7 +19,6 @@ import { type Key, pressKey } from "./key.ts";
 import { StyledFrame } from "./styled-frame.ts";
 
 const WAIT_TIMEOUT_MS = 3000;
-const WAIT_POLL_INTERVAL_MS = 10;
 
 interface Size {
   width: number;
@@ -61,7 +60,7 @@ export async function mount(node: React.ReactNode, size: Size) {
         await runPendingEffects();
         return captured;
       }
-      await Bun.sleep(WAIT_POLL_INTERVAL_MS);
+      await Bun.sleep(10);
     }
     throw new Error(
       `Waited ${WAIT_TIMEOUT_MS}ms for ${expected}. ` +

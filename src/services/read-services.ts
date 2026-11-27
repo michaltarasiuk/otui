@@ -8,8 +8,6 @@ import { sortParams } from "#utils/sort.ts";
 
 import { Call, Operation, SERVICE_WINDOW_MS, Service, type ServiceSort } from "./service.ts";
 
-const OPERATION_LIMIT = 50;
-
 function windowParams() {
   return { fromMs: Date.now() - SERVICE_WINDOW_MS, windowMs: SERVICE_WINDOW_MS };
 }
@@ -35,7 +33,7 @@ export async function readServiceOperations(connection: DuckDBConnection, servic
   const reader = await connection.runAndReadAll(serviceOperations, {
     ...windowParams(),
     serviceName,
-    limit: OPERATION_LIMIT,
+    limit: 50,
   });
   return Operation.array().parse(reader.getRowObjectsJS());
 }

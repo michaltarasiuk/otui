@@ -25,8 +25,6 @@ import { serviceListQuery, serviceOperationsQuery } from "./service-queries.ts";
 import { ServiceTable } from "./service-table.tsx";
 import { SERVICE_SORT_COLUMNS, SERVICE_WINDOW_LABEL, type ServiceSort } from "./service.ts";
 
-const BUSIEST_FIRST: ServiceSort = { column: "rate", descending: true };
-
 interface ServicesPageProps {
   onOpenTraces: (service: string, operation?: string) => void;
   onOpenMap: () => void;
@@ -35,7 +33,7 @@ interface ServicesPageProps {
 export function ServicesPage({ onOpenTraces, onOpenMap }: ServicesPageProps) {
   const connection = useConnection();
   const search = useSearch();
-  const [sort, setSort] = useState(BUSIEST_FIRST);
+  const [sort, setSort] = useState<ServiceSort>({ column: "rate", descending: true });
   const deferredSort = useDeferredValue(sort);
 
   const query = { search: search.deferredText, sort: deferredSort };

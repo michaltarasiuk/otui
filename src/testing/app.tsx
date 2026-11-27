@@ -15,8 +15,6 @@ import type { OtlpRequest } from "./otlp.ts";
 import { startTestReceiver } from "./receiver.ts";
 import { mount, type TestScreen } from "./render.tsx";
 
-const DEFAULT_SIZE = { width: 120, height: 30 };
-
 export interface AppOptions {
   size?: { width: number; height: number };
   send?: OtlpRequest[];
@@ -25,7 +23,11 @@ export interface AppOptions {
 
 export type TestApp = Awaited<ReturnType<typeof renderApp>>;
 
-export async function renderApp({ size = DEFAULT_SIZE, send = [], failOnce }: AppOptions = {}) {
+export async function renderApp({
+  size = { width: 120, height: 30 },
+  send = [],
+  failOnce,
+}: AppOptions = {}) {
   const resources = new AsyncDisposableStack();
   onTestFinished(() => resources.disposeAsync());
 

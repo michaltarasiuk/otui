@@ -11,8 +11,6 @@ import { formatMetricValue } from "./metric-value.ts";
 const COLUMN_LABEL_WIDTH = 11;
 const COLUMN_COUNT_WIDTH = 9;
 
-const BAR_MARK = "■";
-
 function nonEmptyRange(buckets: Bucket[]) {
   const first = buckets.findIndex((bucket) => bucket.count > 0);
   const last = buckets.findLastIndex((bucket) => bucket.count > 0);
@@ -56,7 +54,7 @@ export function BucketBars({ distribution, unit, color }: BucketBarsProps) {
             {bucketLabel(bucket, unit)}
           </text>
           <text flexGrow={1} fg={color} wrapMode="none">
-            {BAR_MARK.repeat(barLength(bucket.count))}
+            {"■".repeat(barLength(bucket.count))}
           </text>
           <text width={COLUMN_COUNT_WIDTH} flexShrink={0} textAlign="right" fg={THEME.text}>
             {formatInteger(bucket.count)}

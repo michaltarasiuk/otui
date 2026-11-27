@@ -24,8 +24,6 @@ import {
   NumberSeries,
 } from "./series.ts";
 
-const EXEMPLAR_LIMIT = 10;
-
 function metricIdentity(metric: Metric) {
   return {
     name: metric.name,
@@ -149,7 +147,7 @@ export async function readSeriesExemplars(
     ...metricIdentity(metric),
     type: metric.type,
     seriesId,
-    limit: EXEMPLAR_LIMIT,
+    limit: 10,
   });
   return Exemplar.array().parse(reader.getRowObjectsJS());
 }

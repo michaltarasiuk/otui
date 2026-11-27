@@ -8,8 +8,6 @@ type Operator = (typeof OPERATORS)[number];
 
 const FILTER_TERM = /^([^\s=!<>]+)(!=|>=|<=|=|>|<)(\S*)$/;
 
-const DURATION_KEY = "duration";
-
 interface Filter {
   key: string;
   operator: Operator;
@@ -26,7 +24,7 @@ function isOrdered(operator: Operator) {
 }
 
 function parseNumber(key: string, value: string) {
-  if (key === DURATION_KEY) {
+  if (key === "duration") {
     return parseDuration(value);
   }
   const number = Number(value);

@@ -1,8 +1,5 @@
 import { isDefined } from "./is-defined.ts";
 
-const INDENT_WIDTH = 2;
-const SHORT_ID_LENGTH = 8;
-
 const collator = new Intl.Collator("en-US", { numeric: true });
 
 export function collapseWhitespace(text: string) {
@@ -10,11 +7,11 @@ export function collapseWhitespace(text: string) {
 }
 
 export function indent(depth: number) {
-  return " ".repeat(depth * INDENT_WIDTH);
+  return "  ".repeat(depth);
 }
 
 export function shortId(id: string) {
-  return id.slice(0, SHORT_ID_LENGTH);
+  return id.slice(0, 8);
 }
 
 export function compareText(a: string, b: string) {

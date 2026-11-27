@@ -15,8 +15,6 @@ import { formatDuration, formatOffset, formatTime } from "#utils/time.ts";
 import type { Span } from "./span.ts";
 import { spanContentQuery } from "./trace-queries.ts";
 
-const NESTED_INDENT = 2;
-
 interface SpanSectionsProps {
   traceId: string;
   spanId: string;
@@ -44,7 +42,7 @@ function SpanSections({ traceId, spanId, children }: SpanSectionsProps) {
                 {event.name}
               </text>
               {event.attributes.length > 0 && (
-                <box paddingLeft={NESTED_INDENT}>
+                <box paddingLeft={2}>
                   <KeyValueList entries={event.attributes} />
                 </box>
               )}
